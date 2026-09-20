@@ -1,0 +1,3 @@
+"""
+Traveo Backend — Notifications Module
+"""

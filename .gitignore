@@ -1,0 +1,85 @@
+# ============================================================
+# TRAVEO — .gitignore
+# ============================================================
+
+# ---------- Environment ----------
+.env
+.env.local
+.env.production
+.env.staging
+.env.*.local
+
+# ---------- Python / Backend ----------
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+*.egg-info/
+dist/
+build/
+.eggs/
+*.egg
+.venv/
+venv/
+env/
+.mypy_cache/
+.pytest_cache/
+.ruff_cache/
+htmlcov/
+.coverage
+coverage.xml
+*.cover
+
+# ---------- Node / JavaScript ----------
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+*.tsbuildinfo
+
+# ---------- React Native ----------
+ios/Pods/
+ios/build/
+android/.gradle/
+android/app/build/
+android/build/
+*.jks
+*.keystore
+*.hprof
+
+# ---------- Expo ----------
+.expo/
+dist/
+web-build/
+
+# ---------- Build Outputs ----------
+*.apk
+*.aab
+*.ipa
+*.app
+
+# ---------- IDE ----------
+.vscode/settings.json
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+
+# ---------- Docker ----------
+docker/volumes/
+
+# ---------- Logs ----------
+logs/
+*.log
+
+# ---------- OS ----------
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Desktop.ini

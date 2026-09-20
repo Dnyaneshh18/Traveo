@@ -1,0 +1,18 @@
+{
+  "name": "traveo-monorepo",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Traveo — AI-Powered Shared Ride Platform Monorepo",
+  "workspaces": [
+    "apps/*"
+  ],
+  "scripts": {
+    "dev:admin": "npm --prefix apps/admin-panel run dev",
+    "build:admin": "npm --prefix apps/admin-panel run build",
+    "start:passenger": "npm --prefix apps/passenger-app start",
+    "start:driver": "npm --prefix apps/driver-app start"
+  },
+  "devDependencies": {
+    "prettier": "^3.2.5"
+  }
+}

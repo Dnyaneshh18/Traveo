@@ -1,0 +1,20 @@
+{
+  "expo": {
+    "name": "Traveo Passenger",
+    "slug": "traveo-passenger",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "automatic",
+    "web": {
+      "bundler": "metro",
+      "output": "single"
+    },
+    "ios": {
+      "supportsTablet": false,
+      "bundleIdentifier": "com.traveo.passenger"
+    },
+    "android": {
+      "package": "com.traveo.passenger"
+    }
+  }
+}
