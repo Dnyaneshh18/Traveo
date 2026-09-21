@@ -8,6 +8,7 @@
     "apps/*"
   ],
   "scripts": {
+    "dev": "npm run passenger:web",
     "backend": "cd backend && uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload",
     "backend:test": "cd backend && python -m pytest -q",
     "passenger": "npm run start --workspace apps/passenger-app",
