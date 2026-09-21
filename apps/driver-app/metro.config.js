@@ -41,13 +41,26 @@ config.server.enhanceMiddleware = (metroMiddleware, server) => {
 
   return (req, res, next) => {
     if (req.url && (req.url.startsWith('/api') || req.url.startsWith('/uploads') || req.url.startsWith('/health'))) {
+      const incomingHeaders = { ...req.headers };
+      if (!incomingHeaders.authorization && incomingHeaders.cookie) {
+        const match = incomingHeaders.cookie.match(/traveo_token=([^;]+)/);
+        if (match) {
+          incomingHeaders.authorization = `Bearer ${decodeURIComponent(match[1])}`;
+        }
+      }
+      if (!incomingHeaders.authorization && req.url && req.url.includes('_token=')) {
+        const match = req.url.match(/_token=([^&]+)/);
+        if (match) {
+          incomingHeaders.authorization = `Bearer ${decodeURIComponent(match[1])}`;
+        }
+      }
       const opts = {
         hostname: backendTarget.hostname,
         port: backendTarget.port,
         path: req.url,
         method: req.method,
         headers: {
-          ...req.headers,
+          ...incomingHeaders,
           host: `${backendTarget.hostname}:${backendTarget.port}`,
         },
       };
