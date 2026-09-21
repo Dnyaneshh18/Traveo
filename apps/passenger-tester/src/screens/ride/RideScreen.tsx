@@ -135,11 +135,19 @@ export function RideScreen({ navigation, route }: Props) {
   const activeMembers = req.members.filter((m) => m.status === 'accepted' || m.status === 'picked_up' || m.status === 'dropped');
   const headline = req.direction === 'from_college' ? `To ${req.destination_address.split(',')[0]}` : `To ${req.college_name}`;
 
+  const goBack = () => {
+    if (navigation.canGoBack()) {
+      navigation.goBack();
+    } else {
+      navigation.reset({ index: 0, routes: [{ name: 'Tabs' }] });
+    }
+  };
+
   return (
     <Screen padded={false} edges={['top']}>
       <View style={{ flex: 1 }}>
         <MapView markers={markers} polyline={polyline} fitTo={fitTo} showUserLocation={live} />
-        <Pressable onPress={() => navigation.canGoBack() ? navigation.goBack() : navigation.popToTop()} style={styles.back}><BodyBold>←</BodyBold></Pressable>
+        <Pressable onPress={goBack} style={styles.back}><BodyBold>←</BodyBold></Pressable>
         <View style={styles.statusChip}><Pill label={STATUS_LABEL[req.status]} status={req.status} /></View>
         {live && req.driver ? <DriverBanner req={req} eta={driverPos ? undefined : req.driver.eta_min} /> : null}
       </View>
@@ -293,7 +301,7 @@ export function RideCompleteScreen({ navigation, route }: NativeStackScreenProps
           ))}
         </Row>
         <Button title="Submit rating" variant="secondary" onPress={() => rate.mutate()} loading={rate.isPending} disabled={rate.isSuccess} style={{ alignSelf: 'stretch' }} />
-        <Pressable onPress={() => navigation.popToTop()}><Small color={colors.primary}>Back to home</Small></Pressable>
+        <Pressable onPress={() => navigation.reset({ index: 0, routes: [{ name: 'Tabs' }] })}><Small color={colors.primary}>Back to home</Small></Pressable>
       </Card>
     </Screen>
   );
