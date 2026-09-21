@@ -22,10 +22,11 @@ def setup_logging() -> None:
         structlog.processors.StackInfoRenderer(),
         structlog.processors.format_exc_info,
     ]
+    use_colors = sys.stderr.isatty() and sys.platform != "win32"
     renderer = (
         structlog.processors.JSONRenderer()
         if settings.LOG_FORMAT == "json"
-        else structlog.dev.ConsoleRenderer(colors=sys.stderr.isatty())
+        else structlog.dev.ConsoleRenderer(colors=use_colors)
     )
     structlog.configure(
         processors=[*shared_processors, structlog.stdlib.ProcessorFormatter.wrap_for_formatter],

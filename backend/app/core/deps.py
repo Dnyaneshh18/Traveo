@@ -129,7 +129,7 @@ async def get_student(current: Current) -> CurrentUser:
 
 
 async def get_driver(current: Current) -> CurrentUser:
-    if current.role != UserRole.DRIVER or not current.driver:
+    if current.role != UserRole.DRIVER:
         raise ForbiddenError("Driver account required")
     return current
 

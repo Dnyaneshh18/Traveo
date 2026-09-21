@@ -90,3 +90,4 @@ backend/storage/
 *.db
 *.db-wal
 *.db-shm
+write-portal.ps1
