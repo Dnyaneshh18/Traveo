@@ -98,8 +98,13 @@ def create_refresh_token(user_id: str, role: str) -> str:
 
 
 def decode_token(token: str, expected_type: str = "access") -> dict[str, Any] | None:
+    if not token or not isinstance(token, str):
+        return None
+    cleaned = token.strip()
+    if (cleaned.startswith('"') and cleaned.endswith('"')) or (cleaned.startswith("'") and cleaned.endswith("'")):
+        cleaned = cleaned[1:-1].strip()
     try:
-        payload = jwt.decode(token, settings.JWT_SECRET, algorithms=[settings.JWT_ALGORITHM])
+        payload = jwt.decode(cleaned, settings.JWT_SECRET, algorithms=[settings.JWT_ALGORITHM])
     except JWTError:
         return None
     if payload.get("type") != expected_type:

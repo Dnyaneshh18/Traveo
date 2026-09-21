@@ -74,27 +74,47 @@ async def get_current_user(
     traveo_token: Annotated[str | None, Cookie()] = None,
     _token: Annotated[str | None, Query()] = None,
 ) -> CurrentUser:
-    raw_token = None
+    candidate_tokens: list[str] = []
+
+    # 1. Authorization header (highest precedence)
     if authorization and authorization.lower().startswith("bearer "):
-        raw_token = authorization.split(" ", 1)[1].strip()
-    elif traveo_token:
-        raw_token = traveo_token.strip()
-    elif "traveo_token" in request.cookies:
-        raw_token = request.cookies.get("traveo_token", "").strip()
-    elif _token:
-        raw_token = _token.strip()
+        candidate_tokens.append(authorization.split(" ", 1)[1].strip())
+
+    # 2. Query param _token
+    if _token and _token.strip():
+        candidate_tokens.append(_token.strip())
     elif "_token" in request.query_params:
-        raw_token = request.query_params.get("_token", "").strip()
+        candidate_tokens.append(request.query_params.get("_token", "").strip())
 
-    if not raw_token:
-        auth_cookie = request.cookies.get("Authorization")
-        if auth_cookie and auth_cookie.lower().startswith("bearer "):
-            raw_token = auth_cookie.split(" ", 1)[1].strip()
+    # 3. Cookie traveo_token
+    if traveo_token and traveo_token.strip():
+        candidate_tokens.append(traveo_token.strip())
+    elif "traveo_token" in request.cookies:
+        candidate_tokens.append(request.cookies.get("traveo_token", "").strip())
 
-    if not raw_token:
+    # 4. Authorization cookie fallback
+    auth_cookie = request.cookies.get("Authorization")
+    if auth_cookie and auth_cookie.lower().startswith("bearer "):
+        candidate_tokens.append(auth_cookie.split(" ", 1)[1].strip())
+
+    # Filter out empty or whitespace tokens
+    clean_candidates = [c for c in candidate_tokens if c and c.strip()]
+
+    if not clean_candidates:
         logger.warning("missing_bearer_header", authorization=authorization, cookie_present=bool(traveo_token), all_cookies=list(request.cookies.keys()))
         raise UnauthorizedError("Missing bearer token")
-    return await resolve_user_from_token(db, raw_token)
+
+    # Try resolving user from each candidate token until one succeeds
+    last_err: Exception | None = None
+    for cand in clean_candidates:
+        try:
+            return await resolve_user_from_token(db, cand)
+        except Exception as e:
+            last_err = e
+
+    if last_err:
+        raise last_err
+    raise UnauthorizedError("Invalid or expired token")
 
 
 async def get_ws_user(websocket: WebSocket, db: DB, token: Annotated[str | None, Query()] = None) -> CurrentUser:
