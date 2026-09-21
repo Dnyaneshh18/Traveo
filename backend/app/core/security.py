@@ -1,165 +1,107 @@
 """
-Traveo Backend — Security Utilities
-
-JWT creation/verification, password hashing, OTP generation,
-and token management utilities.
+Traveo — Security primitives: JWT, password hashing, OTP & matching codes.
 """
 
 from __future__ import annotations
 
+import base64
+import hashlib
+import hmac
 import secrets
 import string
 from datetime import UTC, datetime, timedelta
 from typing import Any
 
 from jose import JWTError, jwt
-from passlib.context import CryptContext
 
 from app.core.config import get_settings
 
 settings = get_settings()
 
-# ── Password Hashing ────────────────────────────────────────
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+_PBKDF2_ITERATIONS = 200_000
 
 
+# ── Password hashing (PBKDF2-SHA256, no external deps) ─────────────
 def hash_password(password: str) -> str:
-    """Hash a password using bcrypt."""
-    return pwd_context.hash(password)
-
-
-def verify_password(plain_password: str, hashed_password: str) -> bool:
-    """Verify a plain password against its hash."""
-    return pwd_context.verify(plain_password, hashed_password)
-
-
-# ── JWT ──────────────────────────────────────────────────────
-def create_access_token(
-    subject: str,
-    role: str,
-    extra_claims: dict[str, Any] | None = None,
-) -> str:
-    """
-    Create a short-lived JWT access token.
-
-    Args:
-        subject: User ID (UUID string).
-        role: User role (passenger, driver, admin, etc.).
-        extra_claims: Additional claims to embed.
-
-    Returns:
-        Encoded JWT string.
-    """
-    now = datetime.now(UTC)
-    expire = now + timedelta(minutes=settings.JWT_ACCESS_TOKEN_EXPIRE_MINUTES)
-    payload: dict[str, Any] = {
-        "sub": subject,
-        "role": role,
-        "type": "access",
-        "iat": now,
-        "exp": expire,
-    }
-    if extra_claims:
-        payload.update(extra_claims)
-    return jwt.encode(payload, settings.JWT_SECRET, algorithm=settings.JWT_ALGORITHM)
-
-
-def create_refresh_token(subject: str) -> str:
-    """
-    Create a long-lived JWT refresh token.
-
-    Args:
-        subject: User ID (UUID string).
-
-    Returns:
-        Encoded JWT string.
-    """
-    now = datetime.now(UTC)
-    expire = now + timedelta(days=settings.JWT_REFRESH_TOKEN_EXPIRE_DAYS)
-    payload = {
-        "sub": subject,
-        "type": "refresh",
-        "iat": now,
-        "exp": expire,
-        "jti": secrets.token_urlsafe(32),
-    }
-    return jwt.encode(payload, settings.JWT_SECRET, algorithm=settings.JWT_ALGORITHM)
-
-
-def decode_token(token: str) -> dict[str, Any]:
-    """
-    Decode and validate a JWT token.
-
-    Args:
-        token: Encoded JWT string.
-
-    Returns:
-        Decoded payload dict.
-
-    Raises:
-        JWTError: If token is invalid, expired, or tampered.
-    """
-    return jwt.decode(
-        token,
-        settings.JWT_SECRET,
-        algorithms=[settings.JWT_ALGORITHM],
+    salt = secrets.token_bytes(16)
+    digest = hashlib.pbkdf2_hmac("sha256", password.encode(), salt, _PBKDF2_ITERATIONS)
+    return "pbkdf2$%d$%s$%s" % (
+        _PBKDF2_ITERATIONS,
+        base64.b64encode(salt).decode(),
+        base64.b64encode(digest).decode(),
     )
 
 
-def verify_access_token(token: str) -> dict[str, Any] | None:
-    """
-    Verify an access token and return its payload, or None if invalid.
-    """
+def verify_password(password: str, stored: str) -> bool:
     try:
-        payload = decode_token(token)
-        if payload.get("type") != "access":
-            return None
-        if not payload.get("sub"):
-            return None
-        return payload
+        _, iterations, salt_b64, digest_b64 = stored.split("$")
+        salt = base64.b64decode(salt_b64)
+        expected = base64.b64decode(digest_b64)
+        digest = hashlib.pbkdf2_hmac("sha256", password.encode(), salt, int(iterations))
+        return hmac.compare_digest(digest, expected)
+    except Exception:
+        return False
+
+
+# ── OTP / codes ────────────────────────────────────────────────────
+def generate_numeric_otp(length: int | None = None) -> str:
+    n = length or settings.OTP_LENGTH
+    return "".join(secrets.choice(string.digits) for _ in range(n))
+
+
+def generate_ride_otp() -> str:
+    """4-digit OTP held only by the ride creator (like Uber/Ola)."""
+    return "".join(secrets.choice(string.digits) for _ in range(4))
+
+
+_CODE_ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"  # no ambiguous chars
+
+
+def generate_matching_code() -> str:
+    """Matching ID shown to group members, e.g. `TRV-7K2Q`."""
+    return "TRV-" + "".join(secrets.choice(_CODE_ALPHABET) for _ in range(4))
+
+
+def hash_code(code: str) -> str:
+    return hashlib.sha256(f"{settings.JWT_SECRET}:{code.strip().upper()}".encode()).hexdigest()
+
+
+def verify_code(code: str, hashed: str) -> bool:
+    return hmac.compare_digest(hash_code(code), hashed)
+
+
+# ── JWT ────────────────────────────────────────────────────────────
+def _create_token(subject: str, token_type: str, expires: timedelta, extra: dict | None) -> str:
+    now = datetime.now(UTC)
+    payload: dict[str, Any] = {
+        "sub": subject,
+        "type": token_type,
+        "iat": int(now.timestamp()),
+        "exp": int((now + expires).timestamp()),
+        "jti": secrets.token_hex(8),
+    }
+    if extra:
+        payload.update(extra)
+    return jwt.encode(payload, settings.JWT_SECRET, algorithm=settings.JWT_ALGORITHM)
+
+
+def create_access_token(user_id: str, role: str) -> str:
+    return _create_token(
+        user_id, "access", timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES), {"role": role}
+    )
+
+
+def create_refresh_token(user_id: str, role: str) -> str:
+    return _create_token(
+        user_id, "refresh", timedelta(days=settings.REFRESH_TOKEN_EXPIRE_DAYS), {"role": role}
+    )
+
+
+def decode_token(token: str, expected_type: str = "access") -> dict[str, Any] | None:
+    try:
+        payload = jwt.decode(token, settings.JWT_SECRET, algorithms=[settings.JWT_ALGORITHM])
     except JWTError:
         return None
-
-
-def verify_refresh_token(token: str) -> dict[str, Any] | None:
-    """
-    Verify a refresh token and return its payload, or None if invalid.
-    """
-    try:
-        payload = decode_token(token)
-        if payload.get("type") != "refresh":
-            return None
-        if not payload.get("sub"):
-            return None
-        return payload
-    except JWTError:
+    if payload.get("type") != expected_type:
         return None
-
-
-# ── OTP ──────────────────────────────────────────────────────
-def generate_otp(length: int = 6) -> str:
-    """
-    Generate a cryptographically secure numeric OTP.
-
-    Args:
-        length: Number of digits (default 6).
-
-    Returns:
-        OTP string (e.g. "482139").
-    """
-    return "".join(secrets.choice(string.digits) for _ in range(length))
-
-
-def generate_ride_otp(length: int = 4) -> str:
-    """
-    Generate a 4-digit ride OTP for passenger-driver verification.
-
-    Shorter than auth OTP for easy verbal communication.
-    """
-    return generate_otp(length)
-
-
-# ── Misc ─────────────────────────────────────────────────────
-def generate_secure_token(nbytes: int = 32) -> str:
-    """Generate a URL-safe random token for idempotency keys, etc."""
-    return secrets.token_urlsafe(nbytes)
+    return payload
