@@ -201,6 +201,17 @@ export function TripScreen({ navigation }: Props) {
 
 function TripSummary({ trip, onDone }: { trip: NonNullable<ReturnType<typeof useTrip>['data']>; onDone: () => void }) {
   const dropped = trip.request.members.filter((m) => m.status === 'dropped');
+  const [stars, setStars] = useState(5);
+  const [rated, setRated] = useState(false);
+  const ratePassengers = useMutation({
+    mutationFn: () => api.rides.rate({ ride_id: trip.ride.id, stars }),
+    onSuccess: () => {
+      setRated(true);
+      toast('Rating submitted! ⭐', undefined, 'success');
+    },
+    onError: (e) => toast('Rating failed', e instanceof ApiError ? e.message : undefined, 'error'),
+  });
+
   return (
     <Screen style={{ justifyContent: 'center' }}>
       <Card style={{ alignItems: 'center', gap: spacing.md }}>
@@ -216,6 +227,28 @@ function TripSummary({ trip, onDone }: { trip: NonNullable<ReturnType<typeof use
           {dropped.map((m) => (
             <Row key={m.id} between><Body>{m.full_name}</Body><BodyBold>{formatINR(m.fare_share_inr)} · cash/UPI</BodyBold></Row>
           ))}
+        </View>
+        <View style={{ alignSelf: 'stretch', alignItems: 'center', gap: 6, marginVertical: spacing.xs, backgroundColor: colors.surfaceAlt, padding: spacing.md, borderRadius: radii.md }}>
+          <BodyBold>Rate your passengers</BodyBold>
+          <Row gap={8}>
+            {[1, 2, 3, 4, 5].map((s) => (
+              <Pressable key={s} onPress={() => !rated && setStars(s)}>
+                <Text style={{ fontSize: 28, opacity: s <= stars ? 1 : 0.25 }}>⭐</Text>
+              </Pressable>
+            ))}
+          </Row>
+          {!rated ? (
+            <Button
+              title="Submit passenger rating"
+              variant="secondary"
+              size="sm"
+              onPress={() => ratePassengers.mutate()}
+              loading={ratePassengers.isPending}
+              style={{ marginTop: 4, width: '100%' }}
+            />
+          ) : (
+            <SmallBold color={colors.success}>Rating recorded ✓</SmallBold>
+          )}
         </View>
         <Button title="Back online" onPress={onDone} style={{ alignSelf: 'stretch', backgroundColor: colors.success }} />
       </Card>

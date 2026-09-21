@@ -9,6 +9,7 @@ import { useAuth } from '@/store/auth';
 import { useActiveRide } from '@/hooks/useActiveRide';
 import type { AppStackParamList } from '@/navigation/types';
 import { getCurrentFix, MapView, type MapMarker, Avatar, Body, BodyBold, Caption, Card, ConnectionDot, H2, H3, Pill, Row, Small, SmallBold } from '@traveo/mobile-ui';
+import { RatingModal, type PendingRatingData } from '@/components/ride/RatingModal';
 
 export function HomeScreen() {
   const navigation = useNavigation<NativeStackNavigationProp<AppStackParamList>>();
@@ -16,12 +17,18 @@ export function HomeScreen() {
   const college = user?.student?.college;
   const { data: active } = useActiveRide();
   const [me, setMe] = useState<LatLng | null>(null);
+  const [ratingDismissed, setRatingDismissed] = useState(false);
   const feed = useQuery({
     queryKey: ['feed', 'home'],
     queryFn: async () => (await api.rides.feed({})).data,
     refetchInterval: 30000,
   });
   const stats = useQuery({ queryKey: ['me', 'stats'], queryFn: async () => (await api.students.stats()).data });
+  const pendingRating = useQuery({
+    queryKey: ['ratings', 'pending'],
+    queryFn: async () => (await api.rides.pendingRating()).data,
+    refetchInterval: 15000,
+  });
 
   useEffect(() => {
     getCurrentFix().then((f) => f && setMe({ lat: f.lat, lng: f.lng }));
@@ -109,6 +116,11 @@ export function HomeScreen() {
           </Row>
         ) : null}
       </View>
+      <RatingModal
+        data={pendingRating.data as PendingRatingData | null}
+        visible={!!pendingRating.data && !ratingDismissed}
+        onClose={() => setRatingDismissed(true)}
+      />
     </View>
   );
 }

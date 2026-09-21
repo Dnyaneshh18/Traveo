@@ -262,7 +262,19 @@ export function createApiClient(opts: ApiClientOptions) {
       cancel: (id: string, reason?: string) => post<null>(`/rides/requests/${id}/cancel`, reason ? { reason } : undefined),
       payments: (rideId: string) => get<Array<{ id: string; payer_id: string; amount_inr: number; method: string; status: string; paid_at?: string | null }>>(`/rides/${rideId}/payments`),
       confirmPayment: (rideId: string, method: string, reference?: string) => post<{ status: string }>(`/rides/${rideId}/payments/confirm`, { method, reference }),
-      rate: (body: { ride_id: string; ratee_id: string; stars: number; comment?: string }) => post<null>('/ratings', body),
+      rate: (body: { ride_id: string; ratee_id?: string; stars: number; comment?: string }) => post<null>('/ratings', body),
+      pendingRating: () => get<{
+        ride_id: string;
+        request_id: string;
+        role: 'passenger' | 'driver';
+        driver_name?: string;
+        driver_id?: string;
+        passenger_count?: number;
+        origin_address?: string;
+        destination_address?: string;
+        fare_share_inr?: number;
+        completed_at?: string | null;
+      } | null>('/ratings/pending'),
     },
 
     drivers: {

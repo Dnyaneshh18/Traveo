@@ -12,6 +12,7 @@ import { useTrip } from '@/hooks/useDriverRuntime';
 import type { AppStackParamList } from '@/navigation/types';
 
 import { OfferModal } from '@/screens/OfferModal';
+import { RatingModal, type PendingRatingData } from '@/screens/RatingModal';
 
 export function HomeScreen() {
   const navigation = useNavigation<NativeStackNavigationProp<AppStackParamList>>();
@@ -22,7 +23,13 @@ export function HomeScreen() {
   const fix = useDriver((s) => s.fix);
   const setFix = useDriver((s) => s.setFix);
   const { data: trip } = useTrip();
+  const [ratingDismissed, setRatingDismissed] = useState(false);
   const earnings = useQuery({ queryKey: ['driver', 'earnings'], queryFn: async () => (await api.drivers.earnings()).data, refetchInterval: 30000 });
+  const pendingRating = useQuery({
+    queryKey: ['ratings', 'pending'],
+    queryFn: async () => (await api.rides.pendingRating()).data,
+    refetchInterval: 15000,
+  });
   const [busy, setBusy] = useState(false);
 
   // Restore online state from the server profile.
@@ -116,6 +123,11 @@ export function HomeScreen() {
         ) : null}
       </View>
       <OfferModal onAccepted={() => navigation.navigate('Trip')} />
+      <RatingModal
+        data={pendingRating.data as PendingRatingData | null}
+        visible={!!pendingRating.data && !ratingDismissed}
+        onClose={() => setRatingDismissed(true)}
+      />
     </View>
   );
 }
