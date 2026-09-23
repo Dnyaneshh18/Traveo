@@ -459,6 +459,11 @@ export function PendingVerificationScreen() {
   const [uploading, setUploading] = useState(false);
   const status = user?.student?.verification_status;
 
+  useEffect(() => {
+    const t = setInterval(() => refreshUser(), 10000);
+    return () => clearInterval(t);
+  }, [refreshUser]);
+
   const pickAndUpload = async () => {
     // Lightweight picker: web uses <input type=file>; native prompts via camera roll when expo-image-picker is added.
     if (Platform.OS === 'web' && typeof document !== 'undefined') {
@@ -473,7 +478,7 @@ export function PendingVerificationScreen() {
           const fd = new FormData();
           fd.append('file', file);
           await api.students.uploadIdCard(fd);
-          toast('ID card uploaded', 'Our team will verify it shortly.', 'success');
+          toast('ID card uploaded', 'Our admin team is reviewing your details.', 'success');
           await refreshUser();
         } catch (e) {
           toast('Upload failed', e instanceof ApiError ? e.message : undefined, 'error');
@@ -488,21 +493,47 @@ export function PendingVerificationScreen() {
   };
 
   const statusCopy = useMemo(() => {
-    if (status === 'rejected') return { emoji: '⛔', title: 'We could not verify your ID', body: user?.student?.verification_note || 'Please upload a clear photo of your college ID card.' };
-    return { emoji: '🕒', title: 'Verification in progress', body: user?.student?.verification_note || 'Upload your college ID card so we can approve you faster.' };
+    if (status === 'rejected') {
+      return {
+        emoji: '⛔',
+        title: 'Verification Rejected',
+        subtitle: 'Admin could not verify your college identity.',
+        reason: user?.student?.verification_note || 'College ID details could not be validated. Please check the details or re-upload your ID card.',
+      };
+    }
+    return {
+      emoji: '🕒',
+      title: 'Profile in Review',
+      subtitle: 'Please wait for 10 minutes while admin verifies your college identity.',
+      reason: user?.student?.verification_note || 'Your registration details have been submitted to the admin console for approval.',
+    };
   }, [status, user?.student?.verification_note]);
 
   return (
     <Screen style={{ justifyContent: 'center' }}>
-      <Card style={{ alignItems: 'center', gap: spacing.md }}>
-        <Text style={{ fontSize: 48 }}>{statusCopy.emoji}</Text>
+      <Card style={{ alignItems: 'center', gap: spacing.md, maxWidth: 440, width: '100%', alignSelf: 'center' }}>
+        <Text style={{ fontSize: 52 }}>{statusCopy.emoji}</Text>
         <H2 center>{statusCopy.title}</H2>
-        <Small center>{statusCopy.body}</Small>
-        <Pill label={status ?? 'pending'} status={status ?? 'pending'} />
-        <Caption>{user?.student?.college.name}</Caption>
+        <Small center color={colors.textSecondary} style={{ fontWeight: '600' }}>{statusCopy.subtitle}</Small>
+
+        {/* Informational card with review details & rejection reason if applicable */}
+        <View style={{ width: '100%', backgroundColor: status === 'rejected' ? '#FEE2E2' : colors.surfaceAlt, padding: spacing.md, borderRadius: radii.md, borderWidth: 1, borderColor: status === 'rejected' ? '#FCA5A5' : colors.border }}>
+          <Caption color={status === 'rejected' ? '#991B1B' : colors.textMuted}>
+            {status === 'rejected' ? 'REASON FOR REJECTION' : 'STATUS NOTE'}
+          </Caption>
+          <SmallBold color={status === 'rejected' ? '#B91C1C' : colors.text} style={{ marginTop: 2 }}>
+            {statusCopy.reason}
+          </SmallBold>
+        </View>
+
+        <Row gap={8} style={{ alignItems: 'center', marginVertical: 4 }}>
+          <Pill label={status ?? 'pending'} status={status ?? 'pending'} />
+          <Caption>{user?.student?.college.name}</Caption>
+        </Row>
+
         <Button title={user?.student?.id_card_url ? 'Re-upload ID card' : 'Upload ID card photo'} onPress={pickAndUpload} loading={uploading} style={{ alignSelf: 'stretch' }} />
-        <Button title="Check status" variant="secondary" onPress={() => refreshUser()} style={{ alignSelf: 'stretch' }} />
-        <Pressable onPress={signOut}><Small color={colors.textMuted}>Sign out</Small></Pressable>
+        <Button title="Refresh Status" variant="secondary" onPress={() => refreshUser()} style={{ alignSelf: 'stretch' }} />
+        <Pressable onPress={signOut} style={{ marginTop: spacing.xs }}><Small color={colors.textMuted}>Sign out / Use a different number</Small></Pressable>
       </Card>
     </Screen>
   );

@@ -168,19 +168,44 @@ export function PendingScreen() {
   const user = useAuth((s) => s.user);
   const refreshUser = useAuth((s) => s.refreshUser);
   const signOut = useAuth((s) => s.signOut);
+  const status = user?.driver?.verification_status;
+  const note = user?.driver?.verification_note;
+
   useEffect(() => {
-    const t = setInterval(() => refreshUser(), 15000);
+    const t = setInterval(() => refreshUser(), 10000);
     return () => clearInterval(t);
   }, [refreshUser]);
+
+  const isRejected = (status === 'rejected');
+
   return (
     <Screen style={{ justifyContent: 'center' }}>
-      <Card style={{ alignItems: 'center', gap: spacing.md }}>
-        <Text style={{ fontSize: 48 }}>🕒</Text>
-        <H2 center>Verification in progress</H2>
-        <Small center>Traveo ops is reviewing your licence and vehicle ({user?.driver?.vehicle?.registration_number}). You'll be notified when approved.</Small>
-        <Pill label={user?.driver?.verification_status ?? 'pending'} status={user?.driver?.verification_status ?? 'pending'} />
-        <Button title="Check status" variant="secondary" onPress={() => refreshUser()} style={{ alignSelf: 'stretch' }} />
-        <Pressable onPress={signOut}><Small color={colors.textMuted}>Sign out</Small></Pressable>
+      <Card style={{ alignItems: 'center', gap: spacing.md, maxWidth: 440, width: '100%', alignSelf: 'center' }}>
+        <Text style={{ fontSize: 52 }}>{isRejected ? '⛔' : '🕒'}</Text>
+        <H2 center>{isRejected ? 'Application Rejected' : 'Profile in Review'}</H2>
+        <Small center color={colors.textSecondary} style={{ fontWeight: '600' }}>
+          {isRejected
+            ? 'Admin could not verify your driver licence or vehicle registration.'
+            : 'Please wait for 10 minutes while admin verifies your licence and vehicle details.'}
+        </Small>
+
+        {/* Reason / status notes card */}
+        <View style={{ width: '100%', backgroundColor: isRejected ? '#FEE2E2' : colors.surfaceAlt, padding: spacing.md, borderRadius: radii.md, borderWidth: 1, borderColor: isRejected ? '#FCA5A5' : colors.border }}>
+          <Caption color={isRejected ? '#991B1B' : colors.textMuted}>
+            {isRejected ? 'REASON FOR REJECTION' : 'STATUS NOTE'}
+          </Caption>
+          <SmallBold color={isRejected ? '#B91C1C' : colors.text} style={{ marginTop: 2 }}>
+            {note || (isRejected ? 'Licence or vehicle verification failed. Contact admin support.' : `Traveo ops is reviewing licence ${user?.driver?.license_number || ''} and vehicle ${user?.driver?.vehicle?.registration_number || ''}.`)}
+          </SmallBold>
+        </View>
+
+        <Row gap={8} style={{ alignItems: 'center', marginVertical: 4 }}>
+          <Pill label={status ?? 'pending'} status={status ?? 'pending'} />
+          <Caption>{user?.driver?.vehicle?.registration_number || 'Vehicle'}</Caption>
+        </Row>
+
+        <Button title="Refresh Status" variant="secondary" onPress={() => refreshUser()} style={{ alignSelf: 'stretch' }} />
+        <Pressable onPress={signOut} style={{ marginTop: spacing.xs }}><Small color={colors.textMuted}>Sign out / Use a different number</Small></Pressable>
       </Card>
     </Screen>
   );

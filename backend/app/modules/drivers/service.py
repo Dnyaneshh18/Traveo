@@ -61,11 +61,12 @@ class DriverService:
         dup_lic = await self.db.scalar(select(DriverProfile).where(DriverProfile.license_number == body.license_number))
         if dup_lic:
             raise ConflictError("This licence number is already registered")
-        auto_verify = settings.is_development  # hackathon mode: instant approval
+        # All registrations go to pending verification review by admin
         profile = DriverProfile(
             user_id=current.id,
             license_number=body.license_number,
-            verification_status=VerificationStatus.VERIFIED if auto_verify else VerificationStatus.PENDING,
+            verification_status=VerificationStatus.PENDING,
+            verification_note="Driver submitted registration – review licence & vehicle details.",
         )
         self.db.add(profile)
         await self.db.flush()
@@ -76,7 +77,7 @@ class DriverService:
             make_model=body.make_model,
             color=body.color,
             seat_capacity=VEHICLE_CAPACITY[body.vehicle_type],
-            is_verified=auto_verify,
+            is_verified=False,
         )
         self.db.add(vehicle)
         current.user.full_name = body.full_name.strip()

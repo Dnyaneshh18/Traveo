@@ -108,6 +108,7 @@ class VehicleOut(APIModel):
 class DriverProfileOut(APIModel):
     license_number: str | None = None
     verification_status: str
+    verification_note: str | None = None
     status: str
     average_rating: float
     rating_count: int

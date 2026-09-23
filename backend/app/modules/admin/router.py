@@ -248,6 +248,7 @@ async def drivers(db: DB, _: Admin, status: VerificationStatus | None = None, li
                 "license_number": d.license_number,
                 "license_url": d.license_url,
                 "verification_status": d.verification_status,
+                "verification_note": d.verification_note,
                 "status": d.status,
                 "vehicle": {"type": d.vehicle.vehicle_type, "registration": d.vehicle.registration_number, "make_model": d.vehicle.make_model, "color": d.vehicle.color} if d.vehicle else None,
                 "completed_rides": d.completed_rides,
@@ -268,8 +269,9 @@ async def verify_driver(profile_id: str, body: VerifyIn, db: DB, admin: Admin):
     if not dp:
         raise NotFoundError("Driver not found")
     dp.verification_status = body.status
+    dp.verification_note = body.note or f"{body.status.title()} by {admin.user.full_name or 'admin'}"
     if dp.vehicle:
-        dp.vehicle.is_verified = body.status == VerificationStatus.VERIFIED
+        dp.vehicle.is_verified = (body.status == VerificationStatus.VERIFIED)
     await db.flush()
     from app.models import NotificationType
 

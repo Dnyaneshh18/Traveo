@@ -64,6 +64,7 @@ def serialize_user(user: User) -> UserOut:
         driver = DriverProfileOut(
             license_number=dp.license_number,
             verification_status=dp.verification_status,
+            verification_note=dp.verification_note,
             status=dp.status,
             average_rating=dp.average_rating,
             rating_count=dp.rating_count,

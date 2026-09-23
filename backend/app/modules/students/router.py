@@ -111,11 +111,11 @@ async def register_student(body: StudentRegisterIn, db: DB, current: Student):
     if dup:
         raise IdentityAlreadyUsed()
 
-    status = VerificationStatus.VERIFIED if check.auto_verified else VerificationStatus.PENDING
+    status = VerificationStatus.PENDING
     note = (
-        f"Auto-verified: institution name matched '{check.matched_alias}' ({check.name_score:.0%}) and ID format is valid."
-        if check.auto_verified
-        else f"ID format did not match the expected pattern ({college.id_hint or 'see college rules'}). Upload your ID card for manual review."
+        f"Submitted for admin verification. Institution match: '{check.matched_alias}' ({check.name_score:.0%})."
+        if check.matched_alias
+        else "Submitted for admin verification."
     )
     profile = StudentProfile(
         user_id=current.id,
@@ -129,7 +129,7 @@ async def register_student(body: StudentRegisterIn, db: DB, current: Student):
         emergency_contact=body.emergency_contact,
         verification_status=status,
         verification_note=note,
-        verified_at=datetime.now(UTC) if status == VerificationStatus.VERIFIED else None,
+        verified_at=None,
     )
     current.user.full_name = body.full_name.strip()
     current.user.profile_completed = True

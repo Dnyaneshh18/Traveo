@@ -70,6 +70,7 @@ CREATE TABLE driver_profiles (
 	license_number VARCHAR(50), 
 	license_url VARCHAR(500), 
 	verification_status VARCHAR(20) NOT NULL, 
+	verification_note TEXT, 
 	status VARCHAR(20) NOT NULL, 
 	average_rating FLOAT NOT NULL, 
 	rating_count INTEGER NOT NULL, 

@@ -120,6 +120,7 @@ class DriverProfile(UUIDPrimaryKeyMixin, TimestampMixin, Base):
     verification_status: Mapped[VerificationStatus] = mapped_column(
         String(20), default=VerificationStatus.PENDING, nullable=False, index=True
     )
+    verification_note: Mapped[str | None] = mapped_column(Text)
     status: Mapped[DriverStatus] = mapped_column(
         String(20), default=DriverStatus.OFFLINE, nullable=False, index=True
     )
