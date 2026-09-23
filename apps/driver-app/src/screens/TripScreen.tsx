@@ -99,7 +99,11 @@ export function TripScreen({ navigation }: Props) {
   const req = trip.request;
   const pickupsLeft = trip.stops.filter((s) => s.kind === 'pickup');
   const dropsLeft = trip.stops.filter((s) => s.kind === 'drop');
-  const navigateTo = (s: TripStop) => Linking.openURL(`https://www.google.com/maps/dir/?api=1&destination=${s.lat},${s.lng}&travelmode=driving`).catch(() => {});
+  const navigateTo = (s: TripStop) => {
+    // If the driver has an active GPS fix, specify `origin` so Google Maps doesn't default to IP geolocation
+    const originParam = fix?.lat && fix?.lng ? `&origin=${fix.lat},${fix.lng}` : '';
+    Linking.openURL(`https://www.google.com/maps/dir/?api=1${originParam}&destination=${s.lat},${s.lng}&travelmode=driving`).catch(() => {});
+  };
 
   return (
     <Screen padded={false} edges={['top']}>
