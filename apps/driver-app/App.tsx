@@ -9,6 +9,7 @@ import { ToastHost } from '@traveo/mobile-ui';
 import { queryClient } from '@/lib/queryClient';
 import { useAuth } from '@/store/auth';
 import { RootNavigator } from '@/navigation/RootNavigator';
+import { ErrorBoundary } from '@/components/ErrorBoundary';
 
 export default function App() {
   const hydrate = useAuth((s) => s.hydrate);
@@ -25,9 +26,11 @@ export default function App() {
     <GestureHandlerRootView style={{ flex: 1 }}>
       <SafeAreaProvider>
         <QueryClientProvider client={queryClient}>
-          <StatusBar style="dark" />
-          <RootNavigator />
-          <ToastHost />
+          <ErrorBoundary>
+            <StatusBar style="dark" />
+            <RootNavigator />
+            <ToastHost />
+          </ErrorBoundary>
         </QueryClientProvider>
       </SafeAreaProvider>
     </GestureHandlerRootView>

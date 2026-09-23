@@ -59,7 +59,20 @@ export function HomeScreen() {
     onSuccess: (data, next) => {
       setOnline(next);
       toast(next ? "You're online 🟢" : "You're offline", next ? 'Waiting for ride requests near you.' : undefined, next ? 'success' : 'info');
-      refreshUser();
+      // Do not trigger full user reload immediately to prevent unnecessary screen unmounts;
+      // update user store locally
+      const currentUser = useAuth.getState().user;
+      if (currentUser?.driver) {
+        useAuth.setState({
+          user: {
+            ...currentUser,
+            driver: {
+              ...currentUser.driver,
+              status: next ? 'online' : 'offline',
+            },
+          },
+        });
+      }
       void data;
     },
     onError: (e) => toast('Could not change status', e instanceof ApiError ? e.message : undefined, 'error'),
