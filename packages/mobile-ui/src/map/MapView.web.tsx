@@ -78,7 +78,7 @@ export default function MapView({
       center: [center.lat, center.lng],
       zoom,
       zoomControl: false,
-      attributionControl: true,
+      attributionControl: false,
       dragging: interactive,
       scrollWheelZoom: interactive,
       touchZoom: interactive,
@@ -87,7 +87,7 @@ export default function MapView({
     // Standard reliable OSM mirror with no watermark
     L.tileLayer('https://a.tile.openstreetmap.fr/hot/{z}/{x}/{y}.png', {
       maxZoom: 19,
-      attribution: '&copy; OpenStreetMap contributors, Tiles style by Humanitarian OpenStreetMap Team',
+      attribution: '',
     }).addTo(map);
     map.on('click', (e: L.LeafletMouseEvent) => onPressRef.current?.({ lat: e.latlng.lat, lng: e.latlng.lng }));
     mapRef.current = map;
@@ -161,6 +161,7 @@ export default function MapView({
 
   return (
     <View style={[{ flex: 1, overflow: 'hidden' }, style]}>
+      <style>{`.leaflet-control-attribution { display: none !important; }`}</style>
       <div ref={containerRef} style={{ width: '100%', height: '100%', minHeight: 160, background: '#E2E8F0' }} />
     </View>
   );
