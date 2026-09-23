@@ -53,6 +53,7 @@ export function RideScreen({ navigation, route }: Props) {
 
   const isCreator = req?.my_role === 'creator';
   const isMember = !!req?.my_role && (req.my_status === 'accepted' || req.my_status === 'picked_up');
+  const wasDropped = req?.my_status === 'dropped';
   const live = req?.status === 'driver_assigned' || req?.status === 'in_progress';
 
   // Subscribe to the ride topic & stream my location while the driver is coming.
@@ -81,8 +82,10 @@ export function RideScreen({ navigation, route }: Props) {
   }, [isMember, live]);
 
   useEffect(() => {
-    if (req?.status === 'completed' && isMember) navigation.replace('RideComplete', { requestId });
-  }, [req?.status, isMember, navigation, requestId]);
+    if ((req?.status === 'completed' && (isMember || wasDropped)) || wasDropped) {
+      navigation.replace('RideComplete', { requestId });
+    }
+  }, [req?.status, isMember, wasDropped, navigation, requestId]);
 
   const invalidate = () => {
     queryClient.invalidateQueries({ queryKey: ['rides'] });
