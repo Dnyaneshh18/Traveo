@@ -22,6 +22,7 @@ router = APIRouter(prefix="/drivers", tags=["Drivers"])
 @router.post("/register", summary="Complete driver profile + vehicle")
 async def register(body: DriverRegisterIn, db: DB, current: Driver):
     await DriverService(db).register(current, body)
+    db.expire_all()
     user = await load_user(db, current.id)
     return ok(serialize_user(user).model_dump(), message="Driver profile created")  # type: ignore[arg-type]
 

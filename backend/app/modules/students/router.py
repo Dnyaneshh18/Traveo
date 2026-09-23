@@ -136,7 +136,7 @@ async def register_student(body: StudentRegisterIn, db: DB, current: Student):
     current.user.role = UserRole.STUDENT
     db.add(profile)
     await db.flush()
-    await db.refresh(current.user)
+    db.expire_all()
     from app.core.deps import load_user
 
     user = await load_user(db, current.id)
