@@ -80,8 +80,20 @@ export function Button({
   size = 'lg',
   ...rest
 }: { title: string; variant?: Variant; loading?: boolean; icon?: React.ReactNode; size?: 'md' | 'lg'; style?: StyleProp<ViewStyle> } & PressableProps) {
-  const bg: Record<Variant, string> = { primary: colors.primary, secondary: colors.primaryLight, ghost: 'transparent', danger: colors.dangerLight, accent: colors.accent };
-  const fg: Record<Variant, string> = { primary: '#fff', secondary: colors.primaryDark, ghost: colors.primary, danger: colors.danger, accent: '#1A2E05' };
+  const bg: Record<Variant, string> = {
+    primary: colors.primary,
+    secondary: colors.surfaceAlt,
+    ghost: 'transparent',
+    danger: colors.dangerLight,
+    accent: colors.accent,
+  };
+  const fg: Record<Variant, string> = {
+    primary: '#fff',
+    secondary: colors.text,
+    ghost: colors.text,
+    danger: colors.danger,
+    accent: '#fff',
+  };
   const isDisabled = disabled || loading;
   return (
     <Pressable
@@ -91,9 +103,16 @@ export function Button({
       style={({ pressed }) => [
         styles.button,
         size === 'md' && { paddingVertical: 10, paddingHorizontal: 14, borderRadius: radii.md },
-        { backgroundColor: bg[variant], opacity: isDisabled ? 0.55 : pressed ? 0.85 : 1 },
+        { backgroundColor: bg[variant], opacity: isDisabled ? 0.45 : pressed ? 0.88 : 1 },
         variant === 'ghost' && { borderWidth: 1, borderColor: colors.border },
-        Platform.OS === 'web' && ({ cursor: isDisabled ? 'not-allowed' : 'pointer' } as any),
+        variant === 'secondary' && { borderWidth: 1, borderColor: colors.border },
+        variant === 'primary' && {
+          shadowColor: colors.primary,
+          shadowOpacity: 0.25,
+          shadowRadius: 10,
+          shadowOffset: { width: 0, height: 4 },
+        },
+        Platform.OS === 'web' && ({ cursor: isDisabled ? 'not-allowed' : 'pointer', transition: 'all 0.15s ease' } as any),
         style,
       ]}
       {...rest}
@@ -116,8 +135,8 @@ export function Card({ children, style, onPress, elevated = true }: { children: 
     <Pressable
       onPress={onPress}
       style={({ pressed }) => [
-        { opacity: pressed ? 0.92 : 1 },
-        Platform.OS === 'web' && ({ cursor: 'pointer' } as any),
+        { opacity: pressed ? 0.94 : 1, transform: [{ scale: pressed ? 0.995 : 1 }] },
+        Platform.OS === 'web' && ({ cursor: 'pointer', transition: 'all 0.15s ease' } as any),
       ]}
     >
       {content}
@@ -134,12 +153,21 @@ export function Input({
   right,
   ...rest
 }: { label?: string; error?: string | null; hint?: string | null; right?: React.ReactNode } & TextInputProps) {
+  const [focused, setFocused] = React.useState(false);
   return (
     <View style={{ gap: 6 }}>
       {label ? <SmallBold color={colors.textSecondary}>{label}</SmallBold> : null}
-      <View style={[styles.inputWrap, error ? { borderColor: colors.danger } : null]}>
+      <View
+        style={[
+          styles.inputWrap,
+          focused ? { borderColor: colors.primary, backgroundColor: '#FFFFFF', ...shadows.card } : null,
+          error ? { borderColor: colors.danger } : null,
+        ]}
+      >
         <TextInput
           placeholderTextColor={colors.textMuted}
+          onFocus={() => setFocused(true)}
+          onBlur={() => setFocused(false)}
           style={[styles.input, Platform.OS === 'web' && ({ outlineStyle: 'none' } as any), style]}
           {...rest}
         />
@@ -263,11 +291,11 @@ export function Segmented<T extends string>({ options, value, onChange }: { opti
             onPress={() => onChange(o.value)}
             style={[
               styles.segment,
-              active && { backgroundColor: colors.surface, ...shadows.card },
-              Platform.OS === 'web' && ({ cursor: 'pointer' } as any),
+              active && { backgroundColor: '#FFFFFF', ...shadows.card },
+              Platform.OS === 'web' && ({ cursor: 'pointer', transition: 'all 0.15s ease' } as any),
             ]}
           >
-            <Text style={[typography.smallBold, { color: active ? colors.primary : colors.textSecondary }]}>{o.label}</Text>
+            <Text style={[typography.smallBold, { color: active ? colors.text : colors.textSecondary }]}>{o.label}</Text>
           </Pressable>
         );
       })}
@@ -288,7 +316,7 @@ export function Stepper({ value, min = 1, max = 4, onChange }: { value: number; 
 const styles = StyleSheet.create({
   screenRoot: {
     flex: 1,
-    backgroundColor: 'transparent',
+    backgroundColor: '#F8FAFC',
     alignItems: 'center', // Centers content on wide web browsers
     width: '100%',
   },
@@ -297,16 +325,93 @@ const styles = StyleSheet.create({
     width: '100%',
     alignSelf: 'center',
   },
-  button: { paddingVertical: 15, paddingHorizontal: 20, borderRadius: radii.lg, alignItems: 'center', justifyContent: 'center' },
-  card: { backgroundColor: colors.surface, borderRadius: radii.lg, padding: spacing.lg, borderWidth: StyleSheet.hairlineWidth, borderColor: colors.border },
-  inputWrap: { flexDirection: 'row', alignItems: 'center', borderWidth: 1, borderColor: colors.border, borderRadius: radii.md, backgroundColor: colors.surface, paddingHorizontal: 14 },
-  input: { flex: 1, paddingVertical: 13, fontSize: 15, color: colors.text },
-  pill: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: radii.pill, alignSelf: 'flex-start' },
-  toastHost: { position: 'absolute', top: 54, left: 16, right: 16, maxWidth: 448, alignSelf: 'center', gap: 8, zIndex: 999 },
-  toast: { backgroundColor: '#0F172A', borderRadius: radii.md, padding: 14, borderLeftWidth: 4, ...shadows.float },
-  toastActionBtn: { paddingVertical: 8, paddingHorizontal: 14, borderRadius: radii.sm, alignItems: 'center', justifyContent: 'center' },
-  segmented: { flexDirection: 'row', backgroundColor: colors.surfaceAlt, borderRadius: radii.md, padding: 4 },
-  segment: { flex: 1, paddingVertical: 9, alignItems: 'center', borderRadius: 9 },
-  stepBtn: { width: 36, height: 36, borderRadius: 18, backgroundColor: colors.primaryLight, alignItems: 'center', justifyContent: 'center' },
-  stepTxt: { color: colors.primaryDark, fontSize: 20, fontWeight: '700', lineHeight: 22 },
+  button: {
+    paddingVertical: 14,
+    paddingHorizontal: 18,
+    borderRadius: radii.md,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  card: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: radii.lg,
+    padding: spacing.lg,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+  },
+  inputWrap: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    borderRadius: radii.md,
+    backgroundColor: '#FFFFFF',
+    paddingHorizontal: 14,
+  },
+  input: {
+    flex: 1,
+    paddingVertical: 12,
+    fontSize: 14,
+    color: colors.text,
+  },
+  pill: {
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: radii.sm,
+    alignSelf: 'flex-start',
+  },
+  toastHost: {
+    position: 'absolute',
+    top: 54,
+    left: 16,
+    right: 16,
+    maxWidth: 440,
+    alignSelf: 'center',
+    gap: 8,
+    zIndex: 999,
+  },
+  toast: {
+    backgroundColor: '#090D16',
+    borderRadius: radii.md,
+    padding: 14,
+    borderLeftWidth: 4,
+    ...shadows.float,
+  },
+  toastActionBtn: {
+    paddingVertical: 8,
+    paddingHorizontal: 14,
+    borderRadius: radii.sm,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  segmented: {
+    flexDirection: 'row',
+    backgroundColor: '#F1F5F9',
+    borderRadius: radii.md,
+    padding: 3,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+  },
+  segment: {
+    flex: 1,
+    paddingVertical: 8,
+    alignItems: 'center',
+    borderRadius: radii.sm,
+  },
+  stepBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: 8,
+    backgroundColor: '#EFF6FF',
+    borderWidth: 1,
+    borderColor: '#DBEAFE',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  stepTxt: {
+    color: '#1D4ED8',
+    fontSize: 18,
+    fontWeight: '700',
+    lineHeight: 20,
+  },
 });
