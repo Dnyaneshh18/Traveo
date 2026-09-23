@@ -57,7 +57,7 @@ export function PhoneScreen({ navigation }: NativeStackScreenProps<AuthStackPara
         <H1>Driver sign in</H1>
         <Small>Use the mobile number registered with Traveo.</Small>
         <Spacer h={spacing.xl} />
-        <Input label="Mobile number" keyboardType="phone-pad" placeholder="99000 00001" value={phone} onChangeText={setPhone} autoFocus error={error} right={<SmallBold color={colors.textMuted}>+91</SmallBold>} />
+        <Input label="Mobile number" keyboardType="phone-pad" placeholder="99000 00001" value={phone} onChangeText={setPhone} error={error} right={<SmallBold color={colors.textMuted}>+91</SmallBold>} />
         <Spacer h={spacing.xl} />
         <Button title="Send OTP" onPress={submit} loading={loading} disabled={!/^\+?\d{10,13}$/.test(phone.replace(/\s/g, ''))} />
       </KeyboardAvoidingView>
@@ -96,7 +96,7 @@ export function OtpScreen({ route, navigation }: NativeStackScreenProps<AuthStac
           <View key={i} style={[styles.otpCell, otp.length === i && { borderColor: colors.driver }]}><H2>{otp[i] ?? ''}</H2></View>
         ))}
       </Pressable>
-      <TextInput ref={inputRef} value={otp} onChangeText={(t) => { const c = t.replace(/\D/g, '').slice(0, 6); setOtp(c); if (c.length === 6) verify(c); }} keyboardType="number-pad" autoFocus style={{ position: 'absolute', opacity: 0, height: 1, width: 1 }} />
+      <TextInput ref={inputRef} value={otp} onChangeText={(t) => { const c = t.replace(/\D/g, '').slice(0, 6); setOtp(c); if (c.length === 6) verify(c); }} keyboardType="number-pad" style={{ position: 'absolute', opacity: 0, height: 1, width: 1 }} />
       {error ? <Small color={colors.danger} style={{ marginTop: spacing.sm }}>{error}</Small> : null}
       <Spacer h={spacing.xl} />
       <Button title="Verify" onPress={() => verify()} loading={loading} disabled={otp.length < 4} />

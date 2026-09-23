@@ -89,7 +89,6 @@ export function WelcomeScreen({ navigation }: NativeStackScreenProps<AuthStackPa
                     placeholder="98765 43210"
                     value={phone}
                     onChangeText={(t) => { setPhone(t); setError(null); }}
-                    autoFocus
                     maxLength={14}
                     error={error}
                     right={<SmallBold color={colors.textMuted}>+91</SmallBold>}
@@ -115,7 +114,6 @@ export function WelcomeScreen({ navigation }: NativeStackScreenProps<AuthStackPa
                     placeholder="Enter OTP"
                     value={otp}
                     onChangeText={(t) => { setOtp(t); setError(null); }}
-                    autoFocus
                     maxLength={6}
                     error={error}
                   />
@@ -181,7 +179,6 @@ export function PhoneScreen({ navigation }: NativeStackScreenProps<AuthStackPara
           placeholder="98765 43210"
           value={phone}
           onChangeText={setPhone}
-          autoFocus
           maxLength={13}
           error={error}
           right={<SmallBold color={colors.textMuted}>+91</SmallBold>}
@@ -257,7 +254,6 @@ export function OtpScreen({ route, navigation }: NativeStackScreenProps<AuthStac
           if (clean.length === 6) verify(clean);
         }}
         keyboardType="number-pad"
-        autoFocus
         style={{ position: 'absolute', opacity: 0, height: 1, width: 1 }}
       />
       {error ? <Small color={colors.danger} style={{ marginTop: spacing.sm }}>{error}</Small> : null}
