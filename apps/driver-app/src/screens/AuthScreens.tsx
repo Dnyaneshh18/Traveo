@@ -3,7 +3,7 @@ import { KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text
 import { LinearGradient } from 'expo-linear-gradient';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { ApiError, colors, radii, spacing, VEHICLES, type VehicleType } from '@traveo/shared';
-import { Body, BodyBold, Button, Card, Display, H1, H2, Input, Pill, Row, Screen, Small, SmallBold, Spacer, toast } from '@traveo/mobile-ui';
+import { Body, BodyBold, Button, Caption, Card, Display, H1, H2, Input, Pill, Row, Screen, Small, SmallBold, Spacer, toast } from '@traveo/mobile-ui';
 import { api } from '@/lib/api';
 import { useAuth } from '@/store/auth';
 import type { AuthStackParamList } from '@/navigation/types';
