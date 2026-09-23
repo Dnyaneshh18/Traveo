@@ -50,9 +50,9 @@ export const radii = { sm: 6, md: 10, lg: 14, xl: 20, pill: 999 } as const;
 
 export const typography = {
   display: { fontSize: 32, fontWeight: '800' as const, lineHeight: 38, letterSpacing: -0.6 },
-  h1: { fontSize: 24, fontWeight: '750' as const, lineHeight: 30, letterSpacing: -0.5 },
+  h1: { fontSize: 24, fontWeight: '700' as const, lineHeight: 30, letterSpacing: -0.5 },
   h2: { fontSize: 19, fontWeight: '700' as const, lineHeight: 25, letterSpacing: -0.3 },
-  h3: { fontSize: 16, fontWeight: '650' as const, lineHeight: 22, letterSpacing: -0.2 },
+  h3: { fontSize: 16, fontWeight: '600' as const, lineHeight: 22, letterSpacing: -0.2 },
   body: { fontSize: 14, fontWeight: '400' as const, lineHeight: 21, letterSpacing: -0.1 },
   bodyBold: { fontSize: 14, fontWeight: '600' as const, lineHeight: 21, letterSpacing: -0.1 },
   small: { fontSize: 13, fontWeight: '400' as const, lineHeight: 18 },

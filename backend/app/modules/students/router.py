@@ -111,11 +111,15 @@ async def register_student(body: StudentRegisterIn, db: DB, current: Student):
     if dup:
         raise IdentityAlreadyUsed()
 
-    status = VerificationStatus.PENDING
+    status = VerificationStatus.VERIFIED if check.auto_verified else VerificationStatus.PENDING
     note = (
-        f"Submitted for admin verification. Institution match: '{check.matched_alias}' ({check.name_score:.0%})."
-        if check.matched_alias
-        else "Submitted for admin verification."
+        f"Auto-verified. Institution match: '{check.matched_alias}' ({check.name_score:.0%})."
+        if check.auto_verified
+        else (
+            f"Submitted for admin verification. Institution match: '{check.matched_alias}' ({check.name_score:.0%})."
+            if check.matched_alias
+            else "Submitted for admin verification."
+        )
     )
     profile = StudentProfile(
         user_id=current.id,
@@ -129,7 +133,7 @@ async def register_student(body: StudentRegisterIn, db: DB, current: Student):
         emergency_contact=body.emergency_contact,
         verification_status=status,
         verification_note=note,
-        verified_at=None,
+        verified_at=datetime.now(UTC) if status == VerificationStatus.VERIFIED else None,
     )
     current.user.full_name = body.full_name.strip()
     current.user.profile_completed = True

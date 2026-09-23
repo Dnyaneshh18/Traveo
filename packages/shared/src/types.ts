@@ -105,6 +105,7 @@ export interface Vehicle {
 export interface DriverProfile {
   license_number?: string | null;
   verification_status: VerificationStatus;
+  verification_note?: string | null;
   status: DriverStatus;
   average_rating: number;
   rating_count: number;

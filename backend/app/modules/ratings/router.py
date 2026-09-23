@@ -110,9 +110,7 @@ async def rate(body: RatingIn, db: DB, current: Current):
             )
         )
         if existing:
-            # If already rated, return ok idempotently without throwing ConflictError
-            db.expire_all()
-            return ok(message="Already rated")
+            raise ConflictError("You have already rated this ride")
         db.add(
             Rating(
                 ride_id=body.ride_id,

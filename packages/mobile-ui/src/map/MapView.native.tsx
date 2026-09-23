@@ -1,30 +1,70 @@
 /**
  * MapView (Android) — Mappls (MapmyIndia) React-Native SDK.
  *
- * Requires a development build (`npx expo run:android`) with the Mappls account files
- * (`<package>.a.conf` / `<package>.a.olf`) copied by the `withMappls` config plugin.
- * If the SDK is unavailable (e.g. Expo Go) a graceful placeholder is rendered.
+ * Requires a custom development build / prebuild (`npx expo run:android`) with the Mappls account files
+ * (`<package>.a.conf` / `<package>.a.olf`) and native view managers compiled in.
+ *
+ * If running inside standard Expo Go or if native Mappls view managers (`RCTMGLMapView`, `RCTMGLCamera`)
+ * are not compiled into the current binary, a graceful informative fallback is rendered instead of throwing
+ * `Invariant Violation: View config not found for component RCTMGLCamera`.
  */
 import React, { useEffect, useMemo, useRef } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, Text, View, UIManager, Platform } from 'react-native';
+import Constants, { ExecutionEnvironment } from 'expo-constants';
 import { boundsOf, colors, DEFAULT_CENTER, DEFAULT_ZOOM } from '@traveo/shared';
 import type { MapViewProps } from './types';
 import { MarkerGlyph } from './MarkerGlyph';
 
+function checkMapplsNativeAvailable(): boolean {
+  if (Platform.OS !== 'android') return false;
+
+  // Expo Go does not compile 3rd-party custom native modules/views (like Mappls SDK)
+  try {
+    const isExpoGo =
+      (Constants as any)?.appOwnership === 'expo' ||
+      (Constants as any)?.executionEnvironment === ExecutionEnvironment.StoreClient;
+    if (isExpoGo) {
+      return false;
+    }
+  } catch {
+    // ignore
+  }
+
+  // Ensure RCTMGLCamera and RCTMGLMapView are truly registered in the native UIManager
+  try {
+    const hasConfig =
+      typeof UIManager?.getViewManagerConfig === 'function'
+        ? !!UIManager.getViewManagerConfig('RCTMGLCamera') && !!UIManager.getViewManagerConfig('RCTMGLMapView')
+        : !!(UIManager as any)?.RCTMGLCamera && !!(UIManager as any)?.RCTMGLMapView;
+    return !!hasConfig;
+  } catch {
+    return false;
+  }
+}
+
+const isNativeSupported = checkMapplsNativeAvailable();
+
 let Mappls: any = null;
-try {
-  // eslint-disable-next-line @typescript-eslint/no-var-requires
-  Mappls = require('mappls-map-react-native');
-} catch {
-  Mappls = null;
+if (isNativeSupported) {
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    Mappls = require('mappls-map-react-native');
+  } catch {
+    Mappls = null;
+  }
 }
 
 export default function MapView(props: MapViewProps) {
-  if (!Mappls || !Mappls.MapView) {
+  if (!isNativeSupported || !Mappls || !Mappls.MapView) {
     return (
       <View style={[styles.fallback, props.style]}>
-        <Text style={styles.fallbackTitle}>Map unavailable</Text>
-        <Text style={styles.fallbackBody}>Mappls SDK needs a development build. Run `npx expo run:android`.</Text>
+        <View style={styles.badge}>
+          <Text style={styles.badgeText}>Mappls Real-Time Map</Text>
+        </View>
+        <Text style={styles.fallbackTitle}>MapmyIndia SDK Ready</Text>
+        <Text style={styles.fallbackBody}>
+          Native map rendering requires a custom development build (`npx expo run:android`) or APK. In Expo Go, map preview is safely paused to prevent native crashes.
+        </Text>
       </View>
     );
   }
@@ -112,7 +152,42 @@ function MapplsMap({
 
 const styles = StyleSheet.create({
   map: { flex: 1 },
-  fallback: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: '#E2E8F0', padding: 24 },
-  fallbackTitle: { fontWeight: '700', color: '#0F172A', marginBottom: 6 },
-  fallbackBody: { color: '#475569', textAlign: 'center', fontSize: 13 },
+  fallback: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#F1F5F9',
+    padding: 24,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    margin: 8,
+  },
+  badge: {
+    backgroundColor: '#E0E7FF',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 12,
+    marginBottom: 8,
+  },
+  badgeText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#4338CA',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  fallbackTitle: {
+    fontWeight: '700',
+    fontSize: 16,
+    color: '#0F172A',
+    marginBottom: 6,
+  },
+  fallbackBody: {
+    color: '#64748B',
+    textAlign: 'center',
+    fontSize: 13,
+    lineHeight: 18,
+    maxWidth: 280,
+  },
 });

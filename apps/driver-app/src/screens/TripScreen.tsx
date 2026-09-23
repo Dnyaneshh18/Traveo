@@ -245,7 +245,7 @@ function TripSummary({ trip, onDone }: { trip: NonNullable<ReturnType<typeof use
             <Button
               title="Submit passenger rating"
               variant="secondary"
-              size="sm"
+              size="md"
               onPress={() => ratePassengers.mutate()}
               loading={ratePassengers.isPending}
               style={{ marginTop: 4, width: '100%' }}

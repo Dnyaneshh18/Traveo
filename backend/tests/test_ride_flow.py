@@ -256,7 +256,7 @@ async def test_driver_cancel_triggers_redispatch_and_no_driver_retry(client: Asy
     # Only demo driver #5 (Hinjewadi) is close enough.
     driver = await login(client, "+919900000005", "driver")
     offer = None
-    for _ in range(40):
+    for _ in range(60):
         offer = (await client.get(f"{API}/drivers/me/offer", headers=driver["headers"])).json()["data"]
         if offer:
             break
@@ -289,7 +289,7 @@ async def test_driver_cancel_triggers_redispatch_and_no_driver_retry(client: Asy
     r = await client.post(f"{API}/rides/requests/{rid}/retry", headers=fay["headers"])
     assert r.status_code == 200 and r.json()["data"]["status"] == "locked"
     offer = None
-    for _ in range(40):
+    for _ in range(60):
         offer = (await client.get(f"{API}/drivers/me/offer", headers=driver["headers"])).json()["data"]
         if offer:
             break

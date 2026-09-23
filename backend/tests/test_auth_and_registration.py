@@ -60,7 +60,7 @@ async def test_student_otp_and_register(client: AsyncClient):
         json={
             "full_name": "Rahul Deshmukh",
             "college_id": coep["id"],
-            "college_id_number": "112003045",
+            "college_id_number": "112003999",
             "college_name_on_id": "COEP Technological University",
             "gender": "male",
             "course": "B.Tech Computer Science",
@@ -68,5 +68,5 @@ async def test_student_otp_and_register(client: AsyncClient):
         }
     )
     assert r3.status_code == 200, r3.text
-    assert r3.json()["data"]["student"]["verification_status"] == "pending"
-    assert r3.json()["data"]["student"]["college_id_number"] == "112003045"
+    assert r3.json()["data"]["student"]["verification_status"] == "verified"
+    assert r3.json()["data"]["student"]["college_id_number"] == "112003999"
