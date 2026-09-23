@@ -79,11 +79,20 @@ async def session_scope() -> AsyncGenerator[AsyncSession, None]:
 
 
 async def create_schema() -> None:
-    """Create all tables (development / hackathon mode).  Production uses Alembic."""
+    """Create all tables and apply non-destructive column additions (development / hackathon mode). Production uses Alembic."""
     from app import models  # noqa: F401 – ensure models are imported
 
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
+        # SQLite automatic schema patch for local development
+        if settings.is_sqlite:
+            try:
+                res = await conn.execute(text("PRAGMA table_info(driver_profiles)"))
+                cols = [r[1] for r in res.fetchall()]
+                if cols and "verification_note" not in cols:
+                    await conn.execute(text("ALTER TABLE driver_profiles ADD COLUMN verification_note TEXT"))
+            except Exception:
+                pass
 
 
 async def check_database_health() -> bool:

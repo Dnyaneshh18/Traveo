@@ -91,8 +91,14 @@ async def seed(db: AsyncSession) -> None:
                 role=UserRole.ADMIN,
                 full_name="Traveo Ops",
                 profile_completed=True,
+                is_active=True,
             )
         )
+    else:
+        # Ensure password and active state match configuration
+        admin.password_hash = hash_password(settings.ADMIN_PASSWORD)
+        admin.is_active = True
+        admin.role = UserRole.ADMIN
 
     if settings.SEED_DEMO_DATA:
         driver_count = int(await db.scalar(select(func.count()).select_from(DriverProfile)) or 0)
