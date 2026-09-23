@@ -107,11 +107,12 @@ async def rate(body: RatingIn, db: DB, current: Current):
             select(Rating).where(
                 Rating.ride_id == body.ride_id,
                 Rating.rater_id == current.id,
-                Rating.ratee_id == target_id,
             )
         )
         if existing:
-            raise ConflictError("Already rated")
+            # If already rated, return ok idempotently without throwing ConflictError
+            db.expire_all()
+            return ok(message="Already rated")
         db.add(
             Rating(
                 ride_id=body.ride_id,
@@ -123,6 +124,7 @@ async def rate(body: RatingIn, db: DB, current: Current):
             )
         )
         await db.flush()
+        db.expire_all()
         await _recalculate(db, target_id)
         return ok(message="Thanks for your feedback!")
 
@@ -177,7 +179,6 @@ async def pending_rating(db: DB, current: Current):
                     select(Rating.id).where(
                         Rating.ride_id == req.ride.id,
                         Rating.rater_id == current.id,
-                        Rating.ratee_id == driver_id,
                     )
                 )
                 if not has_rated:

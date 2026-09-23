@@ -138,7 +138,11 @@ export function HomeScreen() {
       <OfferModal onAccepted={() => navigation.navigate('Trip')} />
       <RatingModal
         data={pendingRating.data as PendingRatingData | null}
-        visible={!!pendingRating.data && !ratingDismissed}
+        visible={
+          !!pendingRating.data &&
+          !ratingDismissed &&
+          (typeof localStorage === 'undefined' || !localStorage.getItem(`rated_ride_${(pendingRating.data as any)?.ride_id}`))
+        }
         onClose={() => setRatingDismissed(true)}
       />
     </View>

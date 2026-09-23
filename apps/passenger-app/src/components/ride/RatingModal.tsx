@@ -39,6 +39,15 @@ export function RatingModal({ data, visible, onClose }: Props) {
       }),
     onSuccess: () => {
       toast('Thanks for your rating! ⭐', undefined, 'success');
+      // Update local storage so this ride_id is permanently marked as rated/dismissed for this device
+      if (typeof localStorage !== 'undefined' && data?.ride_id) {
+        try {
+          localStorage.setItem(`rated_ride_${data.ride_id}`, 'true');
+        } catch {
+          /* ignore */
+        }
+      }
+      queryClient.setQueryData(['ratings', 'pending'], null);
       queryClient.invalidateQueries({ queryKey: ['ratings', 'pending'] });
       queryClient.invalidateQueries({ queryKey: ['rides'] });
       queryClient.invalidateQueries({ queryKey: ['driver', 'earnings'] });
@@ -128,7 +137,19 @@ export function RatingModal({ data, visible, onClose }: Props) {
             style={{ width: '100%', marginTop: spacing.sm }}
           />
 
-          <Pressable onPress={onClose} style={styles.skipBtn}>
+          <Pressable
+            onPress={() => {
+              if (typeof localStorage !== 'undefined' && data?.ride_id) {
+                try {
+                  localStorage.setItem(`rated_ride_${data.ride_id}`, 'true');
+                } catch {
+                  /* ignore */
+                }
+              }
+              onClose();
+            }}
+            style={styles.skipBtn}
+          >
             <Small color={colors.textMuted}>Skip for now</Small>
           </Pressable>
         </View>
