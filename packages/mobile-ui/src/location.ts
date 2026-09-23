@@ -66,21 +66,66 @@ export async function getCurrentFix(): Promise<Fix | null> {
 
 /** Watch position; returns a stop function. */
 export async function watchPosition(cb: (fix: Fix) => void, intervalMs = 4000): Promise<() => void> {
+  // On web, use native navigator.geolocation.watchPosition directly:
+  // expo-location's watchPositionAsync on web has an EventEmitter bug when unsubscribing
+  // (_LocationEventEmitter.LocationEventEmitter.removeSubscription is not a function).
+  if (Platform.OS === 'web' && typeof navigator !== 'undefined' && navigator.geolocation) {
+    try {
+      const watchId = navigator.geolocation.watchPosition(
+        (pos) => {
+          cb({
+            lat: pos.coords.latitude,
+            lng: pos.coords.longitude,
+            heading: pos.coords.heading,
+            speed: pos.coords.speed,
+            accuracy: pos.coords.accuracy,
+          });
+        },
+        (err) => {
+          console.warn('Geolocation watch error (using fallback):', err.message);
+        },
+        { enableHighAccuracy: true, timeout: 5000, maximumAge: 5000 }
+      );
+      return () => {
+        try {
+          navigator.geolocation.clearWatch(watchId);
+        } catch {
+          /* ignore */
+        }
+      };
+    } catch {
+      return () => {};
+    }
+  }
+
   if (!(await ensureLocationPermission())) return () => {};
-  const sub = await Location.watchPositionAsync(
-    {
-      accuracy: Platform.OS === 'web' ? Location.Accuracy.Balanced : Location.Accuracy.High,
-      timeInterval: intervalMs,
-      distanceInterval: 5,
-    },
-    (pos) =>
-      cb({
-        lat: pos.coords.latitude,
-        lng: pos.coords.longitude,
-        heading: pos.coords.heading,
-        speed: pos.coords.speed,
-        accuracy: pos.coords.accuracy,
-      }),
-  );
-  return () => sub.remove();
+  try {
+    const sub = await Location.watchPositionAsync(
+      {
+        accuracy: Platform.OS === 'web' ? Location.Accuracy.Balanced : Location.Accuracy.High,
+        timeInterval: intervalMs,
+        distanceInterval: 5,
+      },
+      (pos) =>
+        cb({
+          lat: pos.coords.latitude,
+          lng: pos.coords.longitude,
+          heading: pos.coords.heading,
+          speed: pos.coords.speed,
+          accuracy: pos.coords.accuracy,
+        }),
+    );
+    return () => {
+      try {
+        if (sub && typeof sub.remove === 'function') {
+          sub.remove();
+        }
+      } catch (e) {
+        console.warn('Location sub.remove suppressed:', e);
+      }
+    };
+  } catch (e) {
+    console.warn('watchPositionAsync failed:', e);
+    return () => {};
+  }
 }

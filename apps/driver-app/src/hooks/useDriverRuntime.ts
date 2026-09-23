@@ -101,7 +101,11 @@ export function useDriverRuntime(enabled: boolean) {
   // GPS streaming while online
   useEffect(() => {
     if (!enabled || !online) {
-      stopRef.current();
+      try {
+        stopRef.current();
+      } catch (e) {
+        console.warn('stop location stream error suppressed:', e);
+      }
       return;
     }
     let cancelled = false;
@@ -120,11 +124,23 @@ export function useDriverRuntime(enabled: boolean) {
       }
     }, LOCATION_PUSH_INTERVAL_MS).then((stop) => {
       stopRef.current = stop;
-      if (cancelled) stop();
+      if (cancelled) {
+        try {
+          stop();
+        } catch {
+          /* ignore */
+        }
+      }
+    }).catch((e) => {
+      console.warn('watchPosition promise rejected:', e);
     });
     return () => {
       cancelled = true;
-      stopRef.current();
+      try {
+        stopRef.current();
+      } catch (e) {
+        console.warn('stop location stream cleanup error suppressed:', e);
+      }
     };
   }, [enabled, online]);
 }
