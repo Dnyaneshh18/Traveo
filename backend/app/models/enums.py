@@ -1,204 +1,135 @@
-"""
-Traveo Backend — Enum Types
-
-All status and type enumerations used across database models.
-Defined separately to avoid circular imports and enable reuse in schemas.
-"""
+"""Traveo — Domain enumerations (single source of truth, mirrored in packages/shared)."""
 
 from __future__ import annotations
 
-import enum
+from enum import StrEnum
 
 
-class UserRole(str, enum.Enum):
-    PASSENGER = "passenger"
+class UserRole(StrEnum):
+    STUDENT = "student"
     DRIVER = "driver"
     ADMIN = "admin"
-    SUPER_ADMIN = "super_admin"
-    SUPPORT = "support"
-    FINANCE = "finance"
-    OPERATIONS = "operations"
 
 
-class RideType(str, enum.Enum):
-    SHARED = "shared"
-    SOLO = "solo"          # Future
-    RENTAL = "rental"      # Future
-    AIRPORT = "airport"    # Future
-    INTERCITY = "intercity" # Future
+class InstitutionType(StrEnum):
+    COLLEGE = "college"
+    SCHOOL = "school"
 
 
-class VehicleCategory(str, enum.Enum):
-    AUTO_RICKSHAW = "auto_rickshaw"    # Capacity: 3 seats max
-    SEDAN_4_SEATER = "sedan_4_seater"   # Capacity: 4 seats max
-    SUV_6_8_SEATER = "suv_6_8_seater"   # Capacity: 6-8 seats max
-
-
-class RideRequestStatus(str, enum.Enum):
+class VerificationStatus(StrEnum):
     PENDING = "pending"
-    MATCHING = "matching"
-    MATCHED = "matched"
-    CANCELLED = "cancelled"
-    EXPIRED = "expired"
-
-
-class GroupStatus(str, enum.Enum):
-    FORMING = "forming"
-    WAITING_FOR_VOTE = "waiting_for_vote"
-    VOTING = "voting"
-    FINALIZED = "finalized"
-    SEARCHING_DRIVER = "searching_driver"
-    DRIVER_ASSIGNED = "driver_assigned"
-    LOCKED = "locked"
-    CANCELLED = "cancelled"
-
-
-class BoardingStatus(str, enum.Enum):
-    WAITING = "waiting"
-    BOARDED = "boarded"
-    NO_SHOW = "no_show"
-    CANCELLED = "cancelled"
-
-
-class DropStatus(str, enum.Enum):
-    PENDING = "pending"
-    DROPPED = "dropped"
-    CANCELLED = "cancelled"
-
-
-class VoteChoice(str, enum.Enum):
-    CONTINUE = "continue"
-    WAIT = "wait"
-    CANCEL = "cancel"
-
-
-class DriverAssignmentStatus(str, enum.Enum):
-    PENDING = "pending"
-    ACCEPTED = "accepted"
+    VERIFIED = "verified"
     REJECTED = "rejected"
-    TIMED_OUT = "timed_out"
-    CANCELLED = "cancelled"
 
 
-class RideStatus(str, enum.Enum):
-    """Complete ride state machine from Part 5."""
-    REQUEST_CREATED = "request_created"
-    SEARCHING_PASSENGERS = "searching_passengers"
-    GROUP_FORMING = "group_forming"
-    WAITING_FOR_VOTE = "waiting_for_vote"
-    SEARCHING_DRIVER = "searching_driver"
-    DRIVER_ASSIGNED = "driver_assigned"
-    OTP_GENERATED = "otp_generated"
-    DRIVER_EN_ROUTE = "driver_en_route"
-    PICKUP_IN_PROGRESS = "pickup_in_progress"
-    ALL_PASSENGERS_BOARDED = "all_passengers_boarded"
-    RIDE_STARTED = "ride_started"
-    DROP_IN_PROGRESS = "drop_in_progress"
-    RIDE_COMPLETED = "ride_completed"
-    PAYMENT_COMPLETED = "payment_completed"
-    RATING_PENDING = "rating_pending"
-    RATING_COMPLETED = "rating_completed"
-    # Error states
-    PASSENGER_CANCELLED = "passenger_cancelled"
-    DRIVER_CANCELLED = "driver_cancelled"
-    GROUP_CANCELLED = "group_cancelled"
-    MATCHING_FAILED = "matching_failed"
-    NO_DRIVER_FOUND = "no_driver_found"
-    PAYMENT_FAILED = "payment_failed"
-    REFUND_INITIATED = "refund_initiated"
-
-
-class VerificationStatus(str, enum.Enum):
-    PENDING = "pending"
-    SUBMITTED = "submitted"
-    UNDER_REVIEW = "under_review"
-    APPROVED = "approved"
-    REJECTED = "rejected"
-    EXPIRED = "expired"
-
-
-class VehicleStatus(str, enum.Enum):
-    PENDING = "pending"
-    APPROVED = "approved"
-    REJECTED = "rejected"
-    SUSPENDED = "suspended"
-
-
-class OnlineStatus(str, enum.Enum):
-    ONLINE = "online"
-    OFFLINE = "offline"
-    BUSY = "busy"
-
-
-class PaymentMethod(str, enum.Enum):
-    UPI = "upi"
-    CARD = "card"
-    WALLET = "wallet"
-    CASH = "cash"
-    NET_BANKING = "net_banking"
-
-
-class PaymentStatus(str, enum.Enum):
-    PENDING = "pending"
-    PROCESSING = "processing"
-    COMPLETED = "completed"
-    FAILED = "failed"
-    REFUNDED = "refunded"
-    PARTIALLY_REFUNDED = "partially_refunded"
-
-
-class PayoutStatus(str, enum.Enum):
-    PENDING = "pending"
-    PROCESSING = "processing"
-    COMPLETED = "completed"
-    FAILED = "failed"
-
-
-class WalletTransactionType(str, enum.Enum):
-    CREDIT = "credit"
-    DEBIT = "debit"
-    REFUND = "refund"
-    PROMOTION = "promotion"
-    RIDE_PAYMENT = "ride_payment"
-    PAYOUT = "payout"
-    ADJUSTMENT = "adjustment"
-
-
-class NotificationType(str, enum.Enum):
-    RIDE = "ride"
-    PAYMENT = "payment"
-    PROMOTION = "promotion"
-    SUPPORT = "support"
-    SYSTEM = "system"
-    SECURITY = "security"
-    WALLET = "wallet"
-
-
-class MessageType(str, enum.Enum):
-    TEXT = "text"
-    EMOJI = "emoji"
-    SYSTEM = "system"
-    IMAGE = "image"       # Future
-    LOCATION = "location" # Future
-
-
-class SupportTicketStatus(str, enum.Enum):
-    OPEN = "open"
-    ASSIGNED = "assigned"
-    WAITING_USER = "waiting_user"
-    RESOLVED = "resolved"
-    CLOSED = "closed"
-
-
-class RefundStatus(str, enum.Enum):
-    PENDING = "pending"
-    PROCESSING = "processing"
-    COMPLETED = "completed"
-    FAILED = "failed"
-
-
-class Gender(str, enum.Enum):
+class Gender(StrEnum):
     MALE = "male"
     FEMALE = "female"
     OTHER = "other"
-    PREFER_NOT_TO_SAY = "prefer_not_to_say"
+
+
+class VehicleType(StrEnum):
+    """Seat capacity is the number of *passenger* seats."""
+
+    BIKE = "bike"
+    AUTO = "auto"
+    CAR = "car"
+    CAR_XL = "car_xl"
+
+
+VEHICLE_CAPACITY: dict[VehicleType, int] = {
+    VehicleType.BIKE: 1,
+    VehicleType.AUTO: 3,
+    VehicleType.CAR: 4,
+    VehicleType.CAR_XL: 6,
+}
+
+VEHICLE_LABEL: dict[VehicleType, str] = {
+    VehicleType.BIKE: "Bike",
+    VehicleType.AUTO: "Auto Rickshaw",
+    VehicleType.CAR: "Car",
+    VehicleType.CAR_XL: "Car XL",
+}
+
+
+class RideDirection(StrEnum):
+    FROM_COLLEGE = "from_college"
+    TO_COLLEGE = "to_college"
+
+
+class RideRequestStatus(StrEnum):
+    OPEN = "open"  # visible in the college feed, accepting co-riders
+    LOCKED = "locked"  # creator pressed "Find driver" (or seats full) – dispatching
+    DRIVER_ASSIGNED = "driver_assigned"
+    IN_PROGRESS = "in_progress"
+    COMPLETED = "completed"
+    NO_DRIVER = "no_driver"  # dispatch exhausted – creator may retry
+    CANCELLED = "cancelled"
+    EXPIRED = "expired"
+
+
+ACTIVE_REQUEST_STATUSES = (
+    RideRequestStatus.OPEN,
+    RideRequestStatus.LOCKED,
+    RideRequestStatus.DRIVER_ASSIGNED,
+    RideRequestStatus.IN_PROGRESS,
+    RideRequestStatus.NO_DRIVER,
+)
+
+
+class MemberRole(StrEnum):
+    CREATOR = "creator"
+    MEMBER = "member"
+
+
+class MemberStatus(StrEnum):
+    ACCEPTED = "accepted"
+    LEFT = "left"
+    REMOVED = "removed"
+    PICKED_UP = "picked_up"
+    DROPPED = "dropped"
+    NO_SHOW = "no_show"
+
+
+ACTIVE_MEMBER_STATUSES = (MemberStatus.ACCEPTED, MemberStatus.PICKED_UP)
+
+
+class DriverStatus(StrEnum):
+    OFFLINE = "offline"
+    ONLINE = "online"
+    ON_TRIP = "on_trip"
+
+
+class OfferStatus(StrEnum):
+    PENDING = "pending"
+    ACCEPTED = "accepted"
+    REJECTED = "rejected"
+    EXPIRED = "expired"
+    CANCELLED = "cancelled"
+
+
+class RideStatus(StrEnum):
+    DRIVER_ASSIGNED = "driver_assigned"  # driver heading to first pickup
+    IN_PROGRESS = "in_progress"  # at least one rider on board
+    COMPLETED = "completed"
+    CANCELLED = "cancelled"
+
+
+class PaymentStatus(StrEnum):
+    PENDING = "pending"
+    PAID = "paid"
+    FAILED = "failed"
+    REFUNDED = "refunded"
+
+
+class PaymentMethod(StrEnum):
+    CASH = "cash"
+    UPI = "upi"
+    WALLET = "wallet"
+
+
+class NotificationType(StrEnum):
+    GROUP = "group"
+    RIDE = "ride"
+    DRIVER = "driver"
+    SYSTEM = "system"

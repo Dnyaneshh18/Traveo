@@ -1,3 +1,1 @@
-"""
-Traveo Backend — Background Workers Module
-"""
+"""Traveo."""

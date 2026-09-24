@@ -1,0 +1,15 @@
+{
+  "name": "@traveo/shared",
+  "version": "2.0.0",
+  "private": true,
+  "description": "Shared TypeScript types, API client, realtime client, geo helpers and design tokens for Traveo apps",
+  "main": "src/index.ts",
+  "types": "src/index.ts",
+  "sideEffects": false,
+  "scripts": {
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "typescript": "~5.9.2"
+  }
+}

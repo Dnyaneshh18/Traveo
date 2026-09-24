@@ -1,18 +1,34 @@
 {
-  "name": "traveo-monorepo",
-  "version": "1.0.0",
+  "name": "traveo",
+  "version": "2.0.0",
   "private": true,
-  "description": "Traveo — AI-Powered Shared Ride Platform Monorepo",
+  "description": "Traveo \u2014 college-verified, passenger-first shared rides (monorepo)",
   "workspaces": [
+    "packages/*",
     "apps/*"
   ],
   "scripts": {
-    "dev:admin": "npm --prefix apps/admin-panel run dev",
-    "build:admin": "npm --prefix apps/admin-panel run build",
-    "start:passenger": "npm --prefix apps/passenger-app start",
-    "start:driver": "npm --prefix apps/driver-app start"
+    "dev": "npm run passenger:web",
+    "backend": "cd backend && uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload",
+    "backend:test": "cd backend && python -m pytest -q",
+    "passenger": "npm run start --workspace apps/passenger-app",
+    "passenger:android": "npm run android --workspace apps/passenger-app",
+    "passenger:web": "npm run web --workspace apps/passenger-app",
+    "passenger-tester:web": "npm run web --workspace apps/passenger-tester",
+    "driver": "npm run start --workspace apps/driver-app",
+    "driver:android": "npm run android --workspace apps/driver-app",
+    "driver:web": "npm run web --workspace apps/driver-app",
+    "admin": "npm run dev --workspace apps/admin-panel",
+    "admin:build": "npm run build --workspace apps/admin-panel",
+    "typecheck": "npm run typecheck --workspaces --if-present",
+    "lint": "npm run lint --workspaces --if-present"
   },
-  "devDependencies": {
-    "prettier": "^3.2.5"
+  "engines": {
+    "node": ">=20"
+  },
+  "overrides": {
+    "react": "19.1.0",
+    "react-dom": "19.1.0",
+    "@types/react": "~19.1.0"
   }
 }
