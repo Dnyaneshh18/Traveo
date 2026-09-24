@@ -1,6 +1,6 @@
 # 🚕 Traveo — College-Verified Shared Mobility Platform
 
-> **Hackathon Submission & Web Demo Guide**
+> **Hackathon Submission & Complete Zero-to-One Local Setup Guide**
 >
 > Traveo is a college-exclusive, passenger-first shared ride platform. Unlike traditional taxi aggregators where a single passenger books a full vehicle, **Traveo groups verified students from the same college heading in the same direction first, splits the fare equitably by travel distance, and then dispatches nearby auto-rickshaws and cabs.**
 
@@ -12,95 +12,130 @@
 - 💰 **Automated Fair Fare Splitting:** Fares are split proportionally based on each student's exact travel distance.
 - 🛡️ **Safety-First Dispatch:** Ride creator holds the starting OTP; every joiner gets a student matching verification ID.
 - 🗺️ **Interactive Real-Time Map & Routing:** Live routing, route polylines, pickup/drop pins, and moving driver location markers.
-- ⚡ **Multi-Role Web Demo:** Passenger App, Driver App, Multi-Student Isolation Tester, and Admin Operations Dashboard all runnable in standard web browsers.
+- ⚡ **Full Web Browser Demo:** Passenger App, Driver App, Multi-Student Isolation Tester, and Admin Operations Dashboard all runnable in standard web browsers with zero mobile compilation required.
 
 ---
 
-## 💻 Hackathon Web Quickstart (Run Everything in Web)
+## 📋 Complete Prerequisites (Install Before Running)
 
-To test the entire Traveo ecosystem on your computer using web browsers, you will open **3 to 4 terminals**. Follow the step-by-step instructions below.
+If you are setting up this project on a fresh computer (or extracting it from a `.zip` archive), make sure you have the following installed:
 
-### 📋 Prerequisites
+### 1. Node.js (v18.x, v20.x, or v22.x LTS)
+- Download & install from: **[https://nodejs.org/](https://nodejs.org/)**
+- Verify in your terminal:
+  ```bash
+  node -v
+  npm -v
+  ```
 
-Ensure you have installed on your computer:
-- **Node.js**: `v18+` or `v20+` ([Download Node.js](https://nodejs.org/))
-- **Python**: `3.11+` or `3.12+` ([Download Python](https://www.python.org/))
-- **Git**
+### 2. Python (v3.11 or v3.12)
+- Download & install from: **[https://www.python.org/downloads/](https://www.python.org/downloads/)**
+- ⚠️ **Crucial on Windows**: Check the box **"Add python.exe to PATH"** during installation.
+- Verify in your terminal:
+  ```bash
+  python --version
+  ```
 
-Clone the repository and enter the folder:
-```bash
-git clone https://github.com/Dnyaneshh18/Traveo.git
-cd Traveo
-```
+### 3. Git (Optional, if cloning from GitHub)
+- Download & install from: **[https://git-scm.com/](https://git-scm.com/)**
 
-Install the root Node dependencies once:
+---
+
+## 🚀 One-Time Setup (First Time Opening the Project)
+
+Open your terminal or PowerShell in the root project folder (`Traveo`):
+
+### Step 1: Install Node Dependencies
+Run once from the root folder:
 ```bash
 npm install
 ```
+*(This installs all root and workspace dependencies for the Passenger App, Driver App, Admin Panel, and shared libraries).*
+
+### Step 2: Set Up Backend Python Environment
+```bash
+cd backend
+
+# Create a virtual environment named .venv
+python -m venv .venv
+
+# Activate the virtual environment:
+# On Windows (PowerShell):
+.\.venv\Scripts\Activate.ps1
+# (If PowerShell says script execution is disabled, run: Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass, then re-run the script)
+# On macOS / Linux:
+# source .venv/bin/activate
+
+# Upgrade pip and install the backend package & dependencies:
+python -m pip install --upgrade pip
+pip install -e .
+
+# Return to root directory
+cd ..
+```
 
 ---
 
-## 🖥️ Terminal 1: Backend Server (FastAPI + SQLite/PostgreSQL)
+## 🖥️ How to Run the Project (Terminal by Terminal)
 
-This terminal powers the REST APIs, WebSockets, real-time driver dispatch, and student verification.
+To experience the full live system, open **4 terminal windows** side-by-side:
+
+```
+┌─────────────────────────────────┬─────────────────────────────────┐
+│  TERMINAL 1: FastAPI Backend    │  TERMINAL 2: Student Passenger  │
+│  Port 8000 (REST & WebSockets)  │  Port 8081 (Web App)            │
+├─────────────────────────────────┼─────────────────────────────────┤
+│  TERMINAL 3: Driver Partner     │  TERMINAL 4: Admin Operations   │
+│  Port 8082 (Web App)            │  Port 5173 (Vite Dashboard)     │
+└─────────────────────────────────┴─────────────────────────────────┘
+```
+
+---
+
+### 🖥️ Terminal 1: Backend Server (FastAPI + SQLite/PostgreSQL)
+Powers authentication, ride matching algorithms, distance calculations, and real-time WebSocket events.
 
 ```bash
 cd backend
 
-# 1. Create a virtual environment
-python -m venv .venv
-
-# 2. Activate the virtual environment
-# Windows (PowerShell):
+# Activate virtual environment
+# Windows:
 .\.venv\Scripts\Activate.ps1
-# macOS / Linux:
+# Mac/Linux:
 # source .venv/bin/activate
 
-# 3. Upgrade pip and install backend dependencies
-python -m pip install --upgrade pip
-pip install -e .
-
-# 4. Start the FastAPI server on port 8000
+# Start backend server
 python -m uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
 ```
-
 - **Backend API URL**: `http://localhost:8000`
-- **Interactive Swagger API Docs**: `http://localhost:8000/docs`
+- **Interactive Swagger Docs**: `http://localhost:8000/docs`
 
 ---
 
-## 🖥️ Terminal 2: Passenger App (Student Web Interface)
-
-This is the passenger application where students verify their college ID, create rides from/to campus, view active shared rides, and track driver progress.
+### 🖥️ Terminal 2: Student Passenger App (Port 8081)
+Where students sign in with their college profile, post rides, browse fellow students' rides, and track active trips.
 
 ```bash
-cd Traveo
-
-# Run Passenger App on Web (Port 8081)
+# In the Traveo root directory:
 npm run passenger:web
 ```
-
-- **Passenger Web App URL**: [http://localhost:8081](http://localhost:8081)
+- **URL**: [http://localhost:8081](http://localhost:8081)
 - **Demo Student Login**:
-  - **Phone**: `9822000001` or `9811119999` (or enter your own 10-digit number)
-  - **OTP**: `123456` *(Default dev OTP)*
-  - **Select College**: Choose **VIT Pune**, **COEP**, or any partner college.
+  - **Phone**: `9822000001` or `9811119999` (or any 10-digit number)
+  - **OTP**: `123456` *(Default dev code)*
+  - **College**: Choose **VIT Pune**, **COEP**, or any listed campus.
 
 ---
 
-## 🖥️ Terminal 3: Driver App (Auto-Rickshaw & Cab Web Interface)
-
-This is the driver partner application where drivers go online, receive incoming ride offers with instant fare & route previews, verify passenger OTPs, and complete trips.
+### 🖥️ Terminal 3: Driver Partner App (Port 8082)
+Where auto-rickshaw and cab drivers go online, receive incoming group requests, verify ride OTPs, and navigate trips.
 
 ```bash
-cd Traveo
-
-# Run Driver App on Web (Port 8082)
+# In the Traveo root directory:
 npm run driver:web
 ```
-
-- **Driver Web App URL**: [http://localhost:8082](http://localhost:8082)
-- **Demo Driver Logins**:
+- **URL**: [http://localhost:8082](http://localhost:8082)
+- **Demo Driver Login**:
   - **Phone**: `9900000001` (Ramesh Pawar - Auto Rickshaw, near campus)
   - **Phone**: `9900000002` (Suresh Patil - Auto Rickshaw)
   - **Phone**: `9900000003` (Santosh Shinde - Prime Sedan Cab)
@@ -108,52 +143,54 @@ npm run driver:web
 
 ---
 
-## 🖥️ Terminal 4: Admin Operations & College Dashboard
-
-The command center for college administrators and platform managers to monitor live campus rides, student approvals, verified drivers, and platform dispatch configuration.
+### 🖥️ Terminal 4: Admin Operations Dashboard (Port 5173)
+The live operations command center for colleges and city dispatchers.
 
 ```bash
-cd Traveo
-
-# Run Admin Dashboard (Port 5173)
+# In the Traveo root directory:
 npm run admin
 ```
-
-- **Admin Portal URL**: [http://localhost:5173](http://localhost:5173)
+- **URL**: [http://localhost:5173](http://localhost:5173)
 - **Admin Credentials**:
   - **Email**: `admin@traveo.app`
   - **Password**: `Admin@123`
 
 ---
 
-## 🧪 Optional: Multi-Student Isolation Tester
+## 🎬 3-Minute Hackathon Demo Script (How to Present)
 
-To verify that students from College A (e.g. VIT Pune) **never** see rides posted by students from College B (e.g. COEP), a dedicated multi-student tester is available:
+Follow this sequence to showcase the platform smoothly to judges:
 
-```bash
-cd Traveo
-python -m http.server 8083 --directory apps/passenger-tester
-```
-- Open [http://localhost:8083](http://localhost:8083) to simulate two distinct students side-by-side and witness real-time same-college isolation in action.
+1. **Open Driver App** ([http://localhost:8082](http://localhost:8082)):
+   - Sign in as Ramesh (`9900000001` / OTP `123456`).
+   - Switch the toggle to **"GO ONLINE"**. The driver is now visible to the dispatch engine.
+2. **Open Passenger App** ([http://localhost:8081](http://localhost:8081)):
+   - Sign in as a student (`9822000001` / OTP `123456`).
+   - Click **"Post a ride"**, select **"Leaving Campus"**, and enter a destination (e.g. `Swargate` or `Pune Station`).
+   - Show judges the dynamic route polyline, per-seat price breakdown, and tap **"Publish ride"**.
+   - Tap **"Lock & Request Driver"**.
+3. **Show Instant Automated Dispatch**:
+   - Flip to the Driver App window — it instantly chimes with an audio alert and displays the incoming offer popup with pickup location, rider count, and guaranteed earnings.
+   - Click **"Accept"**.
+   - Flip back to the Passenger App — the screen instantly switches to the active trip state, displaying the driver's vehicle number, live arrival distance, and start OTP!
+4. **Show Admin Operations** ([http://localhost:5173](http://localhost:5173)):
+   - Show the live operations map displaying current active rides, student verifications, and fleet status.
 
 ---
 
-## 🎬 Recommended 3-Minute Hackathon Demo Flow
+## 🧪 Testing Same-College Privacy & Isolation
 
-1. **Open Driver App** (`http://localhost:8082`):
-   - Login with `9900000001` and OTP `123456`.
-   - Tap **"GO ONLINE"**.
-2. **Open Passenger App** (`http://localhost:8081`):
-   - Login with `9822000001` and OTP `123456`.
-   - Tap **"Post a ride"**, choose **Leaving Campus**, enter a destination (e.g., `Swargate` or `Pune Station`).
-   - View the dynamic route preview, fare estimate, and tap **"Publish ride"**.
-   - Tap **"Lock & Request Driver"**.
-3. **Witness Instant Dispatch**:
-   - The Driver App (`http://localhost:8082`) instantly chimes and pops up the ride request with route, seats, and fare.
-   - Click **"Accept"**.
-   - The Passenger App immediately switches to the live trip screen with the approaching driver's details and real-time pickup status!
-4. **Inspect Admin Dashboard** (`http://localhost:5173`):
-   - View the active ride reflected on the live operations map.
+To demonstrate to judges that students from different colleges **never** see each other's rides:
+
+1. In a terminal, run:
+   ```bash
+   python -m http.server 8083 --directory apps/passenger-tester
+   ```
+2. Open [http://localhost:8083](http://localhost:8083).
+3. The tester opens two mock student screens side-by-side:
+   - **Student A** (VIT Pune) posts a ride to Swargate.
+   - **Student B** (COEP) searches the feed.
+   - **Result**: Student B's feed remains completely empty, verifying 100% same-college isolation and campus privacy.
 
 ---
 
@@ -180,7 +217,7 @@ Traveo/
 
 ---
 
-## 📜 License & Acknowledgments
+## 📜 License & Hackathon Notes
 
-Built for hackathons and campus mobility innovation.
+Built for hackathon demonstration and campus shared mobility innovation.
 All rights reserved © 2026 Traveo Team.
