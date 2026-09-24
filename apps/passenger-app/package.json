@@ -10,7 +10,8 @@
     "web": "expo start --web --port 8081",
     "prebuild": "expo prebuild --platform android --clean",
     "typecheck": "tsc --noEmit",
-    "export:android": "expo export --platform android"
+    "export:android": "expo export --platform android",
+    "ios": "expo run:ios"
   },
   "dependencies": {
     "@expo/metro-runtime": "~6.1.2",
