@@ -130,7 +130,7 @@ export function RegisterScreen() {
   };
   return (
     <Screen padded={false}>
-      <ScrollView contentContainerStyle={{ padding: spacing.lg, paddingBottom: 60 }} keyboardShouldPersistTaps="handled">
+      <ScrollView contentContainerStyle={{ padding: spacing.lg, paddingBottom: 60 }} keyboardShouldPersistTaps="always" keyboardDismissMode="none">
         <Spacer h={spacing.md} />
         <H1>Set up your driver profile</H1>
         <Small>Your licence and vehicle are verified by the Traveo team.</Small>

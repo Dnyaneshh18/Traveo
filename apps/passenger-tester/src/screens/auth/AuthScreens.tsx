@@ -59,7 +59,7 @@ export function WelcomeScreen({ navigation }: NativeStackScreenProps<AuthStackPa
     <View style={{ flex: 1, backgroundColor: colors.primaryDark }}>
       <LinearGradient colors={[colors.primaryDark, colors.primary]} style={{ flex: 1, width: '100%' }}>
         <Screen style={{ backgroundColor: 'transparent', justifyContent: 'space-between', paddingBottom: spacing.xl }} edges={['top', 'bottom']}>
-          <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={{ flexGrow: 1, justifyContent: 'space-between' }}>
+          <ScrollView keyboardShouldPersistTaps="always" keyboardDismissMode="none" contentContainerStyle={{ flexGrow: 1, justifyContent: 'space-between' }}>
             <View style={{ marginTop: spacing.xl }}>
               <Text style={{ fontSize: 48 }}>🎓🛺</Text>
               <Display color="#fff" style={{ marginTop: spacing.sm }}>Traveo</Display>
@@ -348,7 +348,7 @@ export function RegisterScreen({ navigation }: any) {
 
   return (
     <Screen padded={false}>
-      <ScrollView contentContainerStyle={{ padding: spacing.lg, paddingBottom: 60 }} keyboardShouldPersistTaps="handled">
+      <ScrollView contentContainerStyle={{ padding: spacing.lg, paddingBottom: 60 }} keyboardShouldPersistTaps="always" keyboardDismissMode="none">
         <Spacer h={spacing.md} />
         <H1>Verify your student identity</H1>
         <Small>Traveo is a closed campus network. Only verified students of your college can see your rides.</Small>
