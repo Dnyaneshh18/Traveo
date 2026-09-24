@@ -66,22 +66,20 @@ const withMapplsAccountFiles = (config, { configDir }) =>
       const appDir = path.join(cfg.modRequest.platformProjectRoot, 'app');
       const appId = cfg.android && cfg.android.package;
       const source = path.resolve(projectRoot, configDir || 'mappls');
-      const wanted = [`${appId}.a.conf`, `${appId}.a.olf`];
-      let copied = 0;
-      for (const name of wanted) {
-        const from = path.join(source, name);
-        if (fs.existsSync(from)) {
-          fs.copyFileSync(from, path.join(appDir, name));
-          copied += 1;
+      
+      // Look for files in source dir
+      if (fs.existsSync(source)) {
+        const files = fs.readdirSync(source);
+        for (const file of files) {
+          if (file.endsWith('.a.conf') || file.endsWith('.a.olf')) {
+            fs.copyFileSync(path.join(source, file), path.join(appDir, file));
+            // Also ensure copy with appId if needed
+            if (appId && !file.startsWith(appId)) {
+              if (file.endsWith('.a.conf')) fs.copyFileSync(path.join(source, file), path.join(appDir, `${appId}.a.conf`));
+              if (file.endsWith('.a.olf')) fs.copyFileSync(path.join(source, file), path.join(appDir, `${appId}.a.olf`));
+            }
+          }
         }
-      }
-      if (copied < wanted.length) {
-        // Not fatal: the map will raise onMapError until the files are added.
-        console.warn(
-          `\n[withMappls] Missing Mappls account files in ${source}.\n` +
-            `           Download ${wanted.join(' and ')} from https://auth.mappls.com/console\n` +
-            `           (register package "${appId}" + your signing SHA-256) and place them there.\n`,
-        );
       }
       return cfg;
     },
