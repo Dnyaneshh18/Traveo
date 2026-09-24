@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no" />
+  <title>Traveo - Fellow VIT Student Tester</title>
+  <style>
+    * { box-sizing: border-box; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+    body { background: #f8fafc; margin: 0; padding: 16px; color: #0f172a; }
+    .card { background: white; border-radius: 12px; padding: 20px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); max-width: 480px; margin: 0 auto 16px; }
+    h2 { margin-top: 0; color: #1e293b; font-size: 1.25rem; display: flex; align-items: center; gap: 8px; }
+    .badge { display: inline-block; padding: 4px 10px; border-radius: 999px; font-size: 12px; font-weight: 600; background: #e0e7ff; color: #4338ca; }
+    .badge-vit { background: #dcfce7; color: #15803d; }
+    .badge-coep { background: #fee2e2; color: #b91c1c; }
+    button { width: 100%; background: #4f46e5; color: white; border: none; border-radius: 8px; padding: 12px; font-size: 15px; font-weight: 600; cursor: pointer; margin-top: 10px; transition: background 0.15s; }
+    button:hover { background: #4338ca; }
+    button:disabled { opacity: 0.6; cursor: not-allowed; }
+    button.secondary { background: #f1f5f9; color: #334155; }
+    button.secondary:hover { background: #e2e8f0; }
+    .ride-card { border: 1.5px solid #e2e8f0; border-radius: 10px; padding: 14px; margin-top: 12px; background: #fafafa; }
+    .ride-card.highlight { border-color: #22c55e; background: #f0fdf4; }
+    .status-pill { display: inline-block; font-size: 11px; padding: 2px 8px; border-radius: 6px; font-weight: 700; text-transform: uppercase; background: #e2e8f0; color: #475569; }
+    .status-open { background: #dbeafe; color: #1d4ed8; }
+    .log-box { background: #0f172a; color: #38bdf8; padding: 12px; border-radius: 8px; font-family: monospace; font-size: 12px; max-height: 160px; overflow-y: auto; white-space: pre-wrap; margin-top: 10px; }
+    .flex { display: flex; gap: 8px; }
+  </style>
+</head>
+<body>
+
+  <div class="card">
+    <h2>🎓 Traveo VIT Classmate Feed</h2>
+    <p style="font-size: 14px; color: #64748b; margin-top: 4px;">
+      This preview lets you test student ride sharing and college visibility live.
+    </p>
+
+    <div style="background: #f1f5f9; padding: 12px; border-radius: 8px; margin-top: 12px;">
+      <div style="font-size: 13px; font-weight: 600; color: #475569;">Logged in student:</div>
+      <div id="student-name" style="font-size: 16px; font-weight: 700; color: #1e293b; margin-top: 2px;">Neha Patil</div>
+      <div style="margin-top: 4px;">
+        <span class="badge badge-vit" id="student-college">Vishwakarma Institute of Technology (VIT Pune)</span>
+      </div>
+    </div>
+
+    <div class="flex" style="margin-top: 12px;">
+      <button class="secondary" onclick="switchStudent('vit')" style="margin-top:0;">Switch to VIT Student</button>
+      <button class="secondary" onclick="switchStudent('coep')" style="margin-top:0;">Switch to COEP Student</button>
+    </div>
+
+    <button onclick="fetchFeed()" id="refresh-btn">🔄 Refresh Available Campus Rides</button>
+  </div>
+
+  <div class="card">
+    <h2>🚗 Rides Visible To You (<span id="ride-count">0</span>)</h2>
+    <div id="rides-list" style="color: #64748b; font-size: 14px; text-align: center; padding: 20px 0;">
+      Click "Refresh Available Campus Rides" to inspect live rides.
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>📡 Live Network Log</h2>
+    <div id="log-box" class="log-box">Initialized tester...</div>
+  </div>
+
+  <script>
+    let currentRole = 'vit';
+    let currentToken = '';
+
+    function log(msg) {
+      const el = document.getElementById('log-box');
+      el.textContent = `[${new Date().toLocaleTimeString()}] ${msg}\n` + el.textContent;
+    }
+
+    async function loginStudent(phone, name, collegeName, collegeIdNumber) {
+      log(`Authenticating ${name} (${phone})...`);
+      try {
+        const res = await fetch('/api/v1/auth/otp/verify', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ phone, otp: '123456', role: 'student' })
+        });
+        const data = await res.json();
+        if (!data.success) {
+          log(`Login failed: ${JSON.stringify(data)}`);
+          return;
+        }
+        currentToken = data.data.tokens.access_token;
+        document.getElementById('student-name').textContent = data.data.user.full_name || name;
+        document.getElementById('student-college').textContent = data.data.user.student?.college?.name || collegeName;
+        log(`✓ Logged in as ${data.data.user.full_name} (${data.data.user.student?.college?.name})`);
+        fetchFeed();
+      } catch (e) {
+        log(`Error: ${e.message}`);
+      }
+    }
+
+    function switchStudent(type) {
+      currentRole = type;
+      if (type === 'vit') {
+        document.getElementById('student-college').className = 'badge badge-vit';
+        loginStudent('9822114455', 'Neha Patil', 'Vishwakarma Institute of Technology', '12410999');
+      } else {
+        document.getElementById('student-college').className = 'badge badge-coep';
+        loginStudent('9822336699', 'Rahul Joshi', 'COEP Technological University', '112003045');
+      }
+    }
+
+    async function fetchFeed() {
+      if (!currentToken) return;
+      const listEl = document.getElementById('rides-list');
+      const countEl = document.getElementById('ride-count');
+      log(`Fetching campus ride feed...`);
+      try {
+        const res = await fetch(`/api/v1/rides/feed?_token=${currentToken}`, {
+          headers: {
+            'Authorization': `Bearer ${currentToken}`,
+            'Accept': 'application/json'
+          }
+        });
+        const resJson = await res.json();
+        const rides = resJson.data || [];
+        countEl.textContent = rides.length;
+        log(`Feed returned ${rides.length} ride(s)`);
+
+        if (rides.length === 0) {
+          listEl.innerHTML = `<div style="padding: 20px; text-align: center; color: #94a3b8;">
+            ${currentRole === 'vit' 
+              ? 'No active rides published yet from VIT Pune. Go to your Passenger App (Port 8081) and tap "Publish ride"!' 
+              : '🔒 Strict College Isolation: 0 rides visible because COEP students cannot see VIT campus rides!'}
+          </div>`;
+          return;
+        }
+
+        listEl.innerHTML = rides.map(item => {
+          const req = item.request;
+          const isVitRide = req.creator?.full_name?.includes('Patil') || req.origin?.name?.includes('VIT');
+          return `
+            <div class="ride-card ${isVitRide ? 'highlight' : ''}">
+              <div style="display: flex; justify-content: space-between; align-items: start;">
+                <div>
+                  <div style="font-weight: 700; font-size: 15px; color: #1e293b;">
+                    ${req.creator?.full_name || 'VIT Student'}
+                  </div>
+                  <div style="font-size: 12px; color: #64748b; margin-top: 2px;">
+                    College: <b>${req.creator?.student?.college?.name || 'VIT Pune'}</b>
+                  </div>
+                </div>
+                <span class="status-pill status-${req.status.toLowerCase()}">${req.status}</span>
+              </div>
+              <div style="margin-top: 10px; font-size: 13px;">
+                <div>📍 <b>Pickup:</b> ${req.origin?.name || req.origin?.address}</div>
+                <div style="margin-top: 4px;">🎯 <b>Drop:</b> ${req.destination?.name || req.destination?.address}</div>
+                <div style="margin-top: 4px; color: #4338ca; font-weight: 600;">
+                  🚘 ${req.vehicle_type.toUpperCase()} • ${req.seats_available || 1} seat(s) available
+                </div>
+              </div>
+              <button style="margin-top: 10px; font-size: 13px; padding: 8px;" onclick="joinRide('${req.id}')">
+                🤝 Join This Shared Ride
+              </button>
+            </div>
+          `;
+        }).join('');
+
+      } catch (e) {
+        log(`Feed fetch failed: ${e.message}`);
+      }
+    }
+
+    async function joinRide(rideId) {
+      log(`Joining ride ${rideId}...`);
+      try {
+        const res = await fetch(`/api/v1/rides/requests/${rideId}/join?_token=${currentToken}`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${currentToken}`
+          },
+          body: JSON.stringify({
+            pickup: { lat: 18.4636, lng: 73.8682, name: 'VIT Main Gate' },
+            drop: { lat: 18.4558, lng: 73.8694, name: 'Amba Mata Mandir' },
+            seats: 1
+          })
+        });
+        const json = await res.json();
+        if (json.success) {
+          log(`✓ Successfully joined ride ${rideId}!`);
+          alert('You have joined the ride!');
+          fetchFeed();
+        } else {
+          log(`Join error: ${json.error?.message || 'Failed'}`);
+          alert(`Join error: ${json.error?.message || 'Failed'}`);
+        }
+      } catch (e) {
+        log(`Join failed: ${e.message}`);
+      }
+    }
+
+    // Initialize on load
+    window.addEventListener('DOMContentLoaded', () => {
+      switchStudent('vit');
+    });
+  </script>
+</body>
+</html>

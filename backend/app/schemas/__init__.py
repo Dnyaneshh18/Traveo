@@ -1,1 +1,1 @@
-"""Traveo Backend — Schema Package"""
+"""Traveo."""

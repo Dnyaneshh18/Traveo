@@ -1,165 +1,124 @@
 """
-Traveo Backend — Application Entry Point
+Traveo API — application factory.
 
-Responsible ONLY for:
-  - Creating the FastAPI application
-  - Registering middleware
-  - Registering routers
-  - Initializing logging
-  - Lifecycle events (startup / shutdown)
-
-No business logic lives here.
+    uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
 """
 
 from __future__ import annotations
 
 from contextlib import asynccontextmanager
-from collections.abc import AsyncGenerator
+from pathlib import Path
 
-import structlog
 from fastapi import FastAPI
 from fastapi.responses import ORJSONResponse
+from fastapi.staticfiles import StaticFiles
 
 from app.core.config import get_settings
-from app.core.database import check_database_health, engine
-from app.core.logging import setup_logging
-from app.exceptions.handlers import register_exception_handlers
-from app.middleware import register_middleware
+from app.core.database import check_database_health, create_schema, engine, session_scope
+from app.core.exceptions import register_exception_handlers
+from app.core.logging import get_logger, setup_logging
+from app.core.middleware import register_middleware
+from app.modules.admin.router import router as admin_router
+from app.modules.auth.router import router as auth_router
+from app.modules.colleges.router import router as colleges_router
+from app.modules.drivers.router import router as drivers_router
+from app.modules.maps.router import router as maps_router
+from app.modules.notifications.router import router as notifications_router
+from app.modules.ratings.router import router as ratings_router
+from app.modules.rides.router import router as rides_router
+from app.modules.students.router import router as students_router
+from app.realtime.hub import hub
+from app.realtime.router import router as ws_router
+from app.workers import maintenance
 
-logger = structlog.get_logger(__name__)
 settings = get_settings()
+setup_logging()
+logger = get_logger("traveo")
+
+DESCRIPTION = """
+**Traveo** — the college-verified, passenger-first shared ride platform.
+
+* Students verify with their **college identity** and only ever see rides from their own campus.
+* A student publishes a ride (campus ⇄ destination); classmates on the same route **accept** it
+  until the creator says *go* — no waiting for a full vehicle.
+* The **dispatch engine** then finds a driver Uber/Ola style (expanding radius, ranked offers,
+  20-second countdown) and optimises the pickup/drop order.
+* The creator holds the **boarding OTP**; every co-rider gets a **matching code** the driver verifies.
+* Live locations stream over the WebSocket (`/ws`) and render on **Mappls (MapmyIndia)** maps.
+"""
 
 
-# ── Lifecycle ────────────────────────────────────────────────
 @asynccontextmanager
-async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
-    """Application startup and shutdown lifecycle."""
-    # ── Startup ──
-    setup_logging()
-    logger.info(
-        "application_starting",
-        app=settings.APP_NAME,
-        version=settings.APP_VERSION,
-        env=settings.APP_ENV,
-    )
+async def lifespan(app: FastAPI):
+    logger.info("startup", env=settings.APP_ENV, db="sqlite" if settings.is_sqlite else "postgres", maps="mappls" if settings.mappls_enabled else "local")
+    if settings.AUTO_CREATE_SCHEMA:
+        await create_schema()
+    async with session_scope() as db:
+        from app.seed import seed
 
-    # Verify database connectivity
-    db_healthy = await check_database_health()
-    if db_healthy:
-        logger.info("database_connected")
-    else:
-        logger.error("database_connection_failed")
+        await seed(db)
+    from app.modules.dispatch.service import dispatcher
 
-    # Initialize Redis cache
-    from app.core.cache import cache
-    await cache.initialize()
-
-    # Start background scheduler
-    from app.workers.scheduler import start_scheduler
-    start_scheduler()
-
+    await dispatcher.resume_pending()
+    maintenance.start()
     yield
-
-    # ── Shutdown ──
-    logger.info("application_shutting_down")
-
-    # Stop background scheduler
-    from app.workers.scheduler import stop_scheduler
-    stop_scheduler()
-
-    # Close Redis
-    from app.core.cache import cache as redis_cache
-    await redis_cache.close()
-
+    await maintenance.stop()
     await engine.dispose()
-    logger.info("database_connections_closed")
+    logger.info("shutdown")
 
 
-# ── Application Factory ─────────────────────────────────────
 def create_app() -> FastAPI:
-    """Create and configure the FastAPI application."""
     app = FastAPI(
-        title=settings.APP_NAME,
-        description="AI-Powered Shared Ride Platform — Backend API",
+        title=f"{settings.APP_NAME} API",
         version=settings.APP_VERSION,
-        docs_url="/docs" if settings.is_development else None,
-        redoc_url="/redoc" if settings.is_development else None,
-        openapi_url="/openapi.json" if settings.is_development else None,
+        description=DESCRIPTION,
         default_response_class=ORJSONResponse,
         lifespan=lifespan,
+        docs_url="/docs",
+        redoc_url="/redoc",
+        openapi_url="/openapi.json",
+        swagger_ui_parameters={"persistAuthorization": True, "displayRequestDuration": True},
     )
-
-    # Register middleware stack
     register_middleware(app)
-
-    # Register global exception handlers
     register_exception_handlers(app)
 
-    # Register routers
-    _register_routers(app)
+    api = settings.API_PREFIX
+    for r in (
+        auth_router,
+        colleges_router,
+        students_router,
+        rides_router,
+        drivers_router,
+        maps_router,
+        ratings_router,
+        notifications_router,
+        admin_router,
+    ):
+        app.include_router(r, prefix=api)
+    app.include_router(ws_router)
+
+    upload_dir = Path(settings.UPLOAD_DIR)
+    upload_dir.mkdir(parents=True, exist_ok=True)
+    app.mount("/uploads", StaticFiles(directory=str(upload_dir)), name="uploads")
+
+    @app.get("/health", tags=["System"], include_in_schema=True)
+    async def health():
+        db_ok = await check_database_health()
+        return {
+            "status": "ok" if db_ok else "degraded",
+            "service": settings.APP_NAME,
+            "version": settings.APP_VERSION,
+            "env": settings.APP_ENV,
+            "database": "up" if db_ok else "down",
+            "maps_provider": "mappls" if settings.mappls_enabled else "local",
+            "realtime_connections": hub.online_count(),
+        }
+
+    @app.get("/", include_in_schema=False)
+    async def root():
+        return {"service": settings.APP_NAME, "docs": "/docs", "health": "/health", "api": api}
 
     return app
 
 
-def _register_routers(app: FastAPI) -> None:
-    """Register all API routers under the versioned prefix."""
-    prefix = settings.API_PREFIX
-
-    # Health check (no prefix, no auth)
-    @app.get("/health", tags=["Health"])
-    async def health_check() -> dict:
-        db_ok = await check_database_health()
-
-        # Check Redis health
-        redis_ok = False
-        try:
-            from app.core.cache import cache
-            if cache._redis:
-                await cache._redis.ping()
-                redis_ok = True
-        except Exception:
-            pass
-
-        return {
-            "status": "healthy" if db_ok else "degraded",
-            "version": settings.APP_VERSION,
-            "environment": settings.APP_ENV,
-            "services": {
-                "database": "up" if db_ok else "down",
-                "redis": "up" if redis_ok else "down",
-            },
-        }
-
-    # --- Auth Router ---
-    from app.authentication.router import router as auth_router
-    app.include_router(auth_router, prefix=f"{prefix}/auth", tags=["Authentication"])
-
-    # --- Ride Routers ---
-    from app.rides.router import router as ride_router
-    from app.rides.driver_router import driver_router
-    app.include_router(ride_router, prefix=f"{prefix}/rides", tags=["Passenger Rides"])
-    app.include_router(driver_router, prefix=f"{prefix}/driver", tags=["Driver Rides"])
-
-    # --- Payment & Wallet Routers ---
-    from app.payments.router import router as payment_router
-    app.include_router(payment_router, prefix=f"{prefix}/payments", tags=["Payments & Wallet"])
-
-    # --- Rating Router ---
-    from app.ratings.router import router as rating_router
-    app.include_router(rating_router, prefix=f"{prefix}", tags=["Ratings"])
-
-    # --- Notification Router ---
-    from app.notifications.router import router as notification_router
-    app.include_router(notification_router, prefix=f"{prefix}", tags=["Notifications"])
-
-    # --- Admin Router ---
-    from app.admin.router import router as admin_router
-    app.include_router(admin_router, prefix=f"{prefix}/admin", tags=["Admin & Operations"])
-
-    # --- WebSocket Router ---
-    from app.websocket.router import router as ws_router
-    app.include_router(ws_router, tags=["WebSocket"])
-
-
-# ── App Instance ─────────────────────────────────────────────
 app = create_app()

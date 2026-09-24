@@ -83,3 +83,11 @@ logs/
 .Trashes
 ehthumbs.db
 Desktop.ini
+
+# Traveo backend runtime
+backend/data/
+backend/storage/
+*.db
+*.db-wal
+*.db-shm
+write-portal.ps1
