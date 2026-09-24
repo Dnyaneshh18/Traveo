@@ -1,120 +1,186 @@
-# 🚕 Traveo — AI-Powered Shared Ride Platform
+# 🚕 Traveo — College-Verified Shared Mobility Platform
 
-> **Not a college project. Not a demo. Not an MVP shortcut.**
-> 
-> Traveo is a production-grade, AI-powered shared ride platform where **passenger matching happens first, then driver assignment follows.**
+> **Hackathon Submission & Web Demo Guide**
+>
+> Traveo is a college-exclusive, passenger-first shared ride platform. Unlike traditional taxi aggregators where a single passenger books a full vehicle, **Traveo groups verified students from the same college heading in the same direction first, splits the fare equitably by travel distance, and then dispatches nearby auto-rickshaws and cabs.**
 
 ---
 
-## 🏗️ Architecture
+## 🌟 Key Features
 
+- 🎓 **Strict Same-College Matching:** Only verified students belonging to the same campus can see, join, and share rides.
+- 💰 **Automated Fair Fare Splitting:** Fares are split proportionally based on each student's exact travel distance.
+- 🛡️ **Safety-First Dispatch:** Ride creator holds the starting OTP; every joiner gets a student matching verification ID.
+- 🗺️ **Interactive Real-Time Map & Routing:** Live routing, route polylines, pickup/drop pins, and moving driver location markers.
+- ⚡ **Multi-Role Web Demo:** Passenger App, Driver App, Multi-Student Isolation Tester, and Admin Operations Dashboard all runnable in standard web browsers.
+
+---
+
+## 💻 Hackathon Web Quickstart (Run Everything in Web)
+
+To test the entire Traveo ecosystem on your computer using web browsers, you will open **3 to 4 terminals**. Follow the step-by-step instructions below.
+
+### 📋 Prerequisites
+
+Ensure you have installed on your computer:
+- **Node.js**: `v18+` or `v20+` ([Download Node.js](https://nodejs.org/))
+- **Python**: `3.11+` or `3.12+` ([Download Python](https://www.python.org/))
+- **Git**
+
+Clone the repository and enter the folder:
+```bash
+git clone https://github.com/Dnyaneshh18/Traveo.git
+cd Traveo
 ```
-traveo/
-├── apps/
-│   ├── passenger-app/    # React Native (Expo)
-│   └── driver-app/       # React Native (Expo)
-├── backend/              # FastAPI (Python 3.11+)
-│   ├── app/
-│   │   ├── core/         # Config, DB, Security, Logging
-│   │   ├── models/       # SQLAlchemy ORM models
-│   │   ├── schemas/      # Pydantic request/response
-│   │   ├── authentication/ # Auth module (Router → Service → Repository)
-│   │   ├── middleware/    # Request ID, logging, security headers
-│   │   ├── dependencies/  # FastAPI DI (auth, DB session, RBAC)
-│   │   └── exceptions/   # Domain exception hierarchy
-│   ├── alembic/          # Database migrations
-│   └── Dockerfile
-├── admin-panel/          # React + Vite + TypeScript (Phase 4)
-├── shared/               # Cross-module constants
-├── docker/               # Docker Compose
-├── nginx/                # Reverse proxy config
-├── docs/                 # Architecture documentation
-├── scripts/              # Utilities
-└── .github/workflows/    # CI/CD
+
+Install the root Node dependencies once:
+```bash
+npm install
 ```
 
-## 🛠️ Tech Stack
+---
 
-| Layer | Technology |
-|---|---|
-| Backend | FastAPI, SQLAlchemy (async), Pydantic v2 |
-| Database | Supabase (PostgreSQL) |
-| Cache | Redis |
-| Auth | JWT (access + refresh tokens) |
-| Payments | Razorpay |
-| Maps | Google Maps Platform |
-| Notifications | Firebase Cloud Messaging |
-| Mobile Apps | React Native (Expo) |
-| Admin Panel | React + Vite + TypeScript |
-| Proxy | Nginx |
-| CI/CD | GitHub Actions |
-| Containerization | Docker |
+## 🖥️ Terminal 1: Backend Server (FastAPI + SQLite/PostgreSQL)
 
-## 🚀 Quick Start
-
-### Prerequisites
-- Python 3.11+
-- Node.js 20+
-- Docker & Docker Compose
-- Supabase account (or local instance)
-
-### Backend Development
+This terminal powers the REST APIs, WebSockets, real-time driver dispatch, and student verification.
 
 ```bash
 cd backend
 
-# Create virtual environment
+# 1. Create a virtual environment
 python -m venv .venv
-source .venv/bin/activate  # Linux/Mac
-.venv\Scripts\activate     # Windows
 
-# Install dependencies
-pip install -e ".[dev]"
+# 2. Activate the virtual environment
+# Windows (PowerShell):
+.\.venv\Scripts\Activate.ps1
+# macOS / Linux:
+# source .venv/bin/activate
 
-# Copy environment config
-cp ../.env.example ../.env
-# Edit .env with your Supabase credentials
+# 3. Upgrade pip and install backend dependencies
+python -m pip install --upgrade pip
+pip install -e .
 
-# Run migrations
-alembic upgrade head
-
-# Start dev server
-uvicorn app.main:app --reload --port 8000
+# 4. Start the FastAPI server on port 8000
+python -m uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
 ```
 
-### Docker (Full Stack)
+- **Backend API URL**: `http://localhost:8000`
+- **Interactive Swagger API Docs**: `http://localhost:8000/docs`
+
+---
+
+## 🖥️ Terminal 2: Passenger App (Student Web Interface)
+
+This is the passenger application where students verify their college ID, create rides from/to campus, view active shared rides, and track driver progress.
 
 ```bash
-cd docker
-docker compose up -d
+cd Traveo
+
+# Run Passenger App on Web (Port 8081)
+npm run passenger:web
 ```
 
-### API Docs
+- **Passenger Web App URL**: [http://localhost:8081](http://localhost:8081)
+- **Demo Student Login**:
+  - **Phone**: `9822000001` or `9811119999` (or enter your own 10-digit number)
+  - **OTP**: `123456` *(Default dev OTP)*
+  - **Select College**: Choose **VIT Pune**, **COEP**, or any partner college.
 
-Once running, visit: `http://localhost:8000/docs`
+---
 
-## 📐 Design Principles
+## 🖥️ Terminal 3: Driver App (Auto-Rickshaw & Cab Web Interface)
 
-1. **Clean Architecture** — Router → Service → Repository → Database
-2. **SOLID** — Single Responsibility, Open/Closed, Liskov, Interface Segregation, Dependency Inversion
-3. **Module-by-Module** — Complete one module, test it, then move forward
-4. **Configuration over Code** — All operational parameters configurable without redeployment
-5. **Security First** — JWT auth, RBAC, rate limiting, security headers, structured logging
+This is the driver partner application where drivers go online, receive incoming ride offers with instant fare & route previews, verify passenger OTPs, and complete trips.
 
-## 📋 Development Phases
+```bash
+cd Traveo
 
-| Phase | Focus | Status |
-|---|---|---|
-| 1 | Foundation (Repo, DB, Auth, Docker) | ✅ In Progress |
-| 2 | Core Ride Flow (Booking → Matching → Driver → OTP → Ride) | ⬜ |
-| 3 | Payments (Razorpay, Wallet, Fare, Ratings) | ⬜ |
-| 4 | Operations (Admin Panel, Analytics, Support) | ⬜ |
-| 5 | Optimization (AI, Feature Flags, Performance) | ⬜ |
+# Run Driver App on Web (Port 8082)
+npm run driver:web
+```
 
-## 📖 Documentation
+- **Driver Web App URL**: [http://localhost:8082](http://localhost:8082)
+- **Demo Driver Logins**:
+  - **Phone**: `9900000001` (Ramesh Pawar - Auto Rickshaw, near campus)
+  - **Phone**: `9900000002` (Suresh Patil - Auto Rickshaw)
+  - **Phone**: `9900000003` (Santosh Shinde - Prime Sedan Cab)
+  - **OTP**: `123456`
 
-Detailed specification: [`step_by_step_building_prompt.md`](./step_by_step_building_prompt.md)
+---
 
-## 📜 License
+## 🖥️ Terminal 4: Admin Operations & College Dashboard
 
-Proprietary. All rights reserved.
+The command center for college administrators and platform managers to monitor live campus rides, student approvals, verified drivers, and platform dispatch configuration.
+
+```bash
+cd Traveo
+
+# Run Admin Dashboard (Port 5173)
+npm run admin
+```
+
+- **Admin Portal URL**: [http://localhost:5173](http://localhost:5173)
+- **Admin Credentials**:
+  - **Email**: `admin@traveo.app`
+  - **Password**: `Admin@123`
+
+---
+
+## 🧪 Optional: Multi-Student Isolation Tester
+
+To verify that students from College A (e.g. VIT Pune) **never** see rides posted by students from College B (e.g. COEP), a dedicated multi-student tester is available:
+
+```bash
+cd Traveo
+python -m http.server 8083 --directory apps/passenger-tester
+```
+- Open [http://localhost:8083](http://localhost:8083) to simulate two distinct students side-by-side and witness real-time same-college isolation in action.
+
+---
+
+## 🎬 Recommended 3-Minute Hackathon Demo Flow
+
+1. **Open Driver App** (`http://localhost:8082`):
+   - Login with `9900000001` and OTP `123456`.
+   - Tap **"GO ONLINE"**.
+2. **Open Passenger App** (`http://localhost:8081`):
+   - Login with `9822000001` and OTP `123456`.
+   - Tap **"Post a ride"**, choose **Leaving Campus**, enter a destination (e.g., `Swargate` or `Pune Station`).
+   - View the dynamic route preview, fare estimate, and tap **"Publish ride"**.
+   - Tap **"Lock & Request Driver"**.
+3. **Witness Instant Dispatch**:
+   - The Driver App (`http://localhost:8082`) instantly chimes and pops up the ride request with route, seats, and fare.
+   - Click **"Accept"**.
+   - The Passenger App immediately switches to the live trip screen with the approaching driver's details and real-time pickup status!
+4. **Inspect Admin Dashboard** (`http://localhost:5173`):
+   - View the active ride reflected on the live operations map.
+
+---
+
+## 📁 Repository Structure
+
+```text
+Traveo/
+├── apps/
+│   ├── passenger-app/       # Student React Native/Web application (Port 8081)
+│   ├── driver-app/          # Driver React Native/Web partner app (Port 8082)
+│   ├── admin-panel/         # React + Vite admin dashboard (Port 5173)
+│   └── passenger-tester/    # Multi-student isolation testing suite (Port 8083)
+├── backend/
+│   ├── app/
+│   │   ├── intelligence/    # Dispatch ring algorithm, route grouping & fare splitting
+│   │   ├── modules/         # Auth, Rides, Drivers, Colleges, Ratings
+│   │   ├── realtime/        # WebSocket live hub for location & events
+│   │   └── main.py          # FastAPI application entrypoint (Port 8000)
+│   └── pyproject.toml       # Backend Python dependencies
+└── packages/
+    ├── shared/              # Shared types, API clients, pricing models & constants
+    └── mobile-ui/           # Unified cross-platform UI kit & map components
+```
+
+---
+
+## 📜 License & Acknowledgments
+
+Built for hackathons and campus mobility innovation.
+All rights reserved © 2026 Traveo Team.
