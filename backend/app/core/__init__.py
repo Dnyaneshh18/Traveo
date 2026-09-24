@@ -1,1 +1,1 @@
-"""Traveo Backend — Core Package"""
+"""Traveo."""

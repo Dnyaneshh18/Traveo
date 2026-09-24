@@ -1,135 +1,55 @@
-import React, { useState, useEffect } from 'react';
-import { StatCard } from '../components/StatCard';
-import { adminApiService } from '../services/api';
+import { useQuery } from '@tanstack/react-query';
+import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
+import { formatINR } from '@traveo/shared';
+import { api } from '../lib/api';
+import { Kpi } from '../components/ui';
 
-interface DashboardKPIs {
-  active_rides: number;
-  active_passengers: number;
-  online_drivers: number;
-  waiting_groups: number;
-  matching_success_rate: number;
-  average_wait_time_minutes: number;
-  revenue_today: number;
-  revenue_this_week: number;
-  revenue_this_month: number;
-  cancellation_rate: number;
-  driver_acceptance_rate: number;
-  average_occupancy: number;
-}
-
-export const DashboardPage: React.FC = () => {
-  const [kpis, setKpis] = useState<DashboardKPIs>({
-    active_rides: 0,
-    active_passengers: 0,
-    online_drivers: 0,
-    waiting_groups: 0,
-    matching_success_rate: 0,
-    average_wait_time_minutes: 0,
-    revenue_today: 0,
-    revenue_this_week: 0,
-    revenue_this_month: 0,
-    cancellation_rate: 0,
-    driver_acceptance_rate: 0,
-    average_occupancy: 0,
-  });
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    async function loadKPIs() {
-      try {
-        const data = await adminApiService.getDashboardKPIs();
-        if (data && typeof data.active_rides === 'number') {
-          setKpis(data);
-        }
-      } catch (err) {
-        console.warn('Could not load KPIs from backend:', err);
-      } finally {
-        setLoading(false);
-      }
-    }
-    loadKPIs();
-  }, []);
-
+export function DashboardPage() {
+  const q = useQuery({ queryKey: ['dashboard'], queryFn: async () => (await api.admin.dashboard()).data, refetchInterval: 15000 });
+  const d = q.data;
+  if (!d) return <div className="empty">Loading dashboard…</div>;
   return (
-    <div style={{ padding: '2rem', display: 'flex', flexDirection: 'column', gap: '2rem' }}>
-      <div>
-        <h1 style={{ color: '#F8FAFC', margin: '0 0 0.5rem 0', fontSize: '1.75rem' }}>Operations Dashboard</h1>
-        <p style={{ color: '#94A3B8', margin: 0 }}>Real-time telemetry and shared ride platform performance</p>
+    <>
+      <div className="page-head">
+        <div><h1>Dashboard</h1><p className="sub">Live overview · maps provider: <b>{d.maps_provider}</b> · {d.realtime_connections} realtime connections</p></div>
       </div>
-
-      {loading ? (
-        <div style={{ color: '#94A3B8' }}>Loading real-time KPIs...</div>
-      ) : (
-        <>
-          {/* Primary KPI Grid */}
-          <div style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
-            gap: '1.25rem',
-          }}>
-            <StatCard
-              title="Active Rides"
-              value={kpis.active_rides}
-              subtitle={`${kpis.active_passengers} passengers in transit`}
-              icon="🚕"
-              trend="+12%"
-              color="#38BDF8"
-            />
-            <StatCard
-              title="Online Drivers"
-              value={kpis.online_drivers}
-              subtitle={`${kpis.waiting_groups} groups searching`}
-              icon="🚘"
-              trend="+5%"
-              color="#22C55E"
-            />
-            <StatCard
-              title="Matching Success Rate"
-              value={`${kpis.matching_success_rate}%`}
-              subtitle={`Avg wait: ${kpis.average_wait_time_minutes} mins`}
-              icon="⚡"
-              trend="+2.4%"
-              color="#A855F7"
-            />
-            <StatCard
-              title="Revenue Today"
-              value={`₹${kpis.revenue_today.toLocaleString('en-IN')}`}
-              subtitle="Platform commission 15%"
-              icon="💳"
-              trend="+18%"
-              color="#F59E0B"
-            />
+      <div className="grid kpis">
+        <Kpi label="Open requests" value={d.rides.open_requests} hint="collecting co-riders" />
+        <Kpi label="Dispatching" value={d.rides.dispatching} hint="searching drivers" />
+        <Kpi label="Live rides" value={d.rides.live} hint="driver assigned / on trip" />
+        <Kpi label="Rides today" value={d.rides.today} hint={`${d.rides.week} this week`} />
+        <Kpi label="Drivers online" value={d.drivers.online} hint={`${d.drivers.total} total · ${d.drivers.pending} pending`} />
+        <Kpi label="Students" value={d.students.total} hint={`${d.students.pending} awaiting verification`} />
+        <Kpi label="GMV (7d)" value={formatINR(d.revenue.gmv_week_inr)} hint={`fees ${formatINR(d.revenue.platform_fees_week_inr)}`} />
+        <Kpi label="Avg group size" value={d.avg_group_size} hint="seats per completed ride" />
+      </div>
+      <div className="grid two" style={{ marginTop: 16 }}>
+        <div className="card">
+          <h2>Completed rides · last 7 days</h2>
+          <div style={{ height: 260 }}>
+            <ResponsiveContainer>
+              <BarChart data={d.series}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+                <XAxis dataKey="date" tickFormatter={(v: string) => v.slice(5)} fontSize={12} />
+                <YAxis allowDecimals={false} fontSize={12} />
+                <Tooltip />
+                <Bar dataKey="rides" fill="#4F46E5" radius={[6, 6, 0, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
           </div>
-
-          {/* Secondary Metrics */}
-          <div style={{
-            backgroundColor: '#1E293B',
-            border: '1px solid #334155',
-            borderRadius: '0.75rem',
-            padding: '1.5rem',
-          }}>
-            <h3 style={{ color: '#F8FAFC', margin: '0 0 1rem 0' }}>Efficiency & Quality Indicators</h3>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '1rem' }}>
-              <div>
-                <div style={{ color: '#64748B', fontSize: '0.8rem' }}>Avg Ride Occupancy</div>
-                <div style={{ color: '#F8FAFC', fontSize: '1.25rem', fontWeight: 600 }}>{kpis.average_occupancy} Seats / Ride</div>
-              </div>
-              <div>
-                <div style={{ color: '#64748B', fontSize: '0.8rem' }}>Driver Acceptance Rate</div>
-                <div style={{ color: '#22C55E', fontSize: '1.25rem', fontWeight: 600 }}>{kpis.driver_acceptance_rate}%</div>
-              </div>
-              <div>
-                <div style={{ color: '#64748B', fontSize: '0.8rem' }}>Cancellation Rate</div>
-                <div style={{ color: '#F59E0B', fontSize: '1.25rem', fontWeight: 600 }}>{kpis.cancellation_rate}%</div>
-              </div>
-              <div>
-                <div style={{ color: '#64748B', fontSize: '0.8rem' }}>Monthly Revenue</div>
-                <div style={{ color: '#38BDF8', fontSize: '1.25rem', fontWeight: 600 }}>₹{kpis.revenue_this_month.toLocaleString('en-IN')}</div>
-              </div>
-            </div>
-          </div>
-        </>
-      )}
-    </div>
+        </div>
+        <div className="card">
+          <h2>Requests by college</h2>
+          <table>
+            <thead><tr><th>College</th><th style={{ textAlign: 'right' }}>Requests</th></tr></thead>
+            <tbody>
+              {d.per_college.map((r: any) => (
+                <tr key={r.college}><td>{r.college}</td><td style={{ textAlign: 'right' }}><b>{r.requests}</b></td></tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </>
   );
-};
+}

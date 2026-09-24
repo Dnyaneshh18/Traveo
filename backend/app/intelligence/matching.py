@@ -1,203 +1,122 @@
 """
-Traveo Ride Intelligence Engine — Passenger Matching Engine
+Ride Intelligence Engine — Passenger compatibility scoring.
 
-Implements candidate discovery, hard constraint checking, and multi-factor
-matching score calculation according to Part 13 specification.
+Decides whether (and how well) a student's trip fits an existing ride request
+from the same college.  Pure computation – no I/O – so it is trivially
+unit-testable and can later be swapped for a learned model.
+
+Compatibility model
+-------------------
+* **Hard constraints** – same college (enforced upstream), seats available,
+  departure inside the time window, detour within limits, women-only filter.
+* **Detour** – extra kilometres the group must drive to include the candidate,
+  measured against the request's current route geometry (closest point on the
+  polyline for pickup *and* drop).  For a `to_college` ride the drop is the
+  campus for everyone, so only the pickup detour matters, and vice-versa.
+* **Score (0–1)** – weighted blend of detour, time proximity, seat pressure and
+  the candidate's rating.  The feed is sorted by this score.
 """
 
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Any
+from datetime import datetime
 
-from app.intelligence.geo import haversine_distance_km
-from app.intelligence.route import RouteCompatibilityEvaluator, RoutePoint
-
-
-@dataclass
-class CandidateRideRequest:
-    id: str
-    passenger_id: str
-    pickup_latitude: float
-    pickup_longitude: float
-    destination_latitude: float
-    destination_longitude: float
-    requested_seats: int
-    waiting_time_minutes: float = 0.0
+from app.core.geo import LatLng, decode_polyline, detour_km, distance_km, point_to_path_km
 
 
-@dataclass
-class MatchCandidateResult:
-    request_a_id: str
-    request_b_id: str
+@dataclass(slots=True)
+class CandidateTrip:
+    pickup: LatLng
+    drop: LatLng
+    departure_at: datetime
+    seats: int = 1
+    rating: float = 5.0
+
+
+@dataclass(slots=True)
+class RequestSnapshot:
+    origin: LatLng
+    destination: LatLng
+    departure_at: datetime
+    seats_available: int
+    polyline: str | None
+    direction: str  # "from_college" | "to_college"
+    route_distance_km: float | None = None
+
+
+@dataclass(slots=True)
+class MatchResult:
+    compatible: bool
     score: float
-    route_overlap: float
-    pickup_distance_km: float
-    destination_distance_km: float
-    is_compatible: bool
-    rejection_reason: str | None = None
+    detour_km: float
+    pickup_offset_km: float
+    drop_offset_km: float
+    time_delta_min: float
+    reason: str | None = None
+
+    def to_dict(self) -> dict:
+        return {
+            "compatible": self.compatible,
+            "score": round(self.score, 3),
+            "detour_km": round(self.detour_km, 2),
+            "pickup_offset_km": round(self.pickup_offset_km, 2),
+            "drop_offset_km": round(self.drop_offset_km, 2),
+            "time_delta_min": round(self.time_delta_min, 1),
+            "reason": self.reason,
+        }
 
 
-class PassengerMatchingEngine:
-    """
-    Core passenger matching engine. Matches incoming ride requests with
-    existing waiting requests to form high-quality shared ride groups.
-    """
+@dataclass(slots=True)
+class MatchingConfig:
+    max_detour_km: float = 2.5
+    max_detour_ratio: float = 0.35
+    time_window_min: float = 25.0
+    max_offset_km: float = 2.0  # how far pickup/drop may be from the route corridor
+    w_detour: float = 0.45
+    w_time: float = 0.25
+    w_seats: float = 0.15
+    w_rating: float = 0.15
 
-    def __init__(
-        self,
-        weight_route_overlap: float = 0.35,
-        weight_pickup_efficiency: float = 0.20,
-        weight_destination_similarity: float = 0.20,
-        weight_waiting_fairness: float = 0.15,
-        weight_vehicle_utilization: float = 0.10,
-        weight_delay_penalty: float = 0.15,
-        max_pickup_distance_km: float = 3.0,
-        max_destination_distance_km: float = 5.0,
-        max_direction_angle_degrees: float = 45.0,
-        max_capacity: int = 4,
-    ) -> None:
-        self.w1 = weight_route_overlap
-        self.w2 = weight_pickup_efficiency
-        self.w3 = weight_destination_similarity
-        self.w4 = weight_waiting_fairness
-        self.w5 = weight_vehicle_utilization
-        self.w6 = weight_delay_penalty
 
-        self.max_pickup_dist = max_pickup_distance_km
-        self.max_dest_dist = max_destination_distance_km
-        self.max_direction_angle = max_direction_angle_degrees
-        self.max_capacity = max_capacity
+def evaluate_match(candidate: CandidateTrip, request: RequestSnapshot, cfg: MatchingConfig | None = None) -> MatchResult:
+    cfg = cfg or MatchingConfig()
 
-    def evaluate_match(
-        self, req_a: CandidateRideRequest, req_b: CandidateRideRequest
-    ) -> MatchCandidateResult:
-        """
-        Evaluate compatibility between two ride requests.
-        Enforces hard constraints first, then calculates weighted score.
-        """
-        # Hard Constraint 1: Seat capacity
-        if req_a.requested_seats + req_b.requested_seats > self.max_capacity:
-            return MatchCandidateResult(
-                request_a_id=req_a.id,
-                request_b_id=req_b.id,
-                score=0.0,
-                route_overlap=0.0,
-                pickup_distance_km=0.0,
-                destination_distance_km=0.0,
-                is_compatible=False,
-                rejection_reason="Capacity exceeded",
-            )
+    time_delta = abs((candidate.departure_at - request.departure_at).total_seconds()) / 60.0
+    if request.seats_available < candidate.seats:
+        return MatchResult(False, 0.0, 0.0, 0.0, 0.0, time_delta, "no_seats")
+    if time_delta > cfg.time_window_min:
+        return MatchResult(False, 0.0, 0.0, 0.0, 0.0, time_delta, "time_window")
 
-        # Distance lookups
-        pickup_dist = haversine_distance_km(
-            req_a.pickup_latitude, req_a.pickup_longitude,
-            req_b.pickup_latitude, req_b.pickup_longitude,
-        )
-        dest_dist = haversine_distance_km(
-            req_a.destination_latitude, req_a.destination_longitude,
-            req_b.destination_latitude, req_b.destination_longitude,
-        )
+    path = decode_polyline(request.polyline) if request.polyline else [request.origin, request.destination]
+    pickup_off, pickup_pos = point_to_path_km(candidate.pickup, path)
+    drop_off, drop_pos = point_to_path_km(candidate.drop, path)
 
-        # Hard Constraint 2: Pickup proximity
-        if pickup_dist > self.max_pickup_dist:
-            return MatchCandidateResult(
-                request_a_id=req_a.id,
-                request_b_id=req_b.id,
-                score=0.0,
-                route_overlap=0.0,
-                pickup_distance_km=pickup_dist,
-                destination_distance_km=dest_dist,
-                is_compatible=False,
-                rejection_reason="Pickup distance too large",
-            )
+    route_km = request.route_distance_km or max(0.5, distance_km(request.origin, request.destination))
 
-        # Hard Constraint 3: Direction compatibility
-        direction_ok, _ = RouteCompatibilityEvaluator.evaluate_direction_compatibility(
-            (req_a.pickup_latitude, req_a.pickup_longitude),
-            (req_a.destination_latitude, req_a.destination_longitude),
-            (req_b.pickup_latitude, req_b.pickup_longitude),
-            (req_b.destination_latitude, req_b.destination_longitude),
-            max_angle_diff_degrees=self.max_direction_angle,
-        )
+    # Travelling direction must agree: pickup must come before drop along the route.
+    if drop_pos + 0.02 < pickup_pos and pickup_off < cfg.max_offset_km and drop_off < cfg.max_offset_km:
+        return MatchResult(False, 0.0, 0.0, pickup_off, drop_off, time_delta, "opposite_direction")
 
-        if not direction_ok:
-            return MatchCandidateResult(
-                request_a_id=req_a.id,
-                request_b_id=req_b.id,
-                score=0.0,
-                route_overlap=0.0,
-                pickup_distance_km=pickup_dist,
-                destination_distance_km=dest_dist,
-                is_compatible=False,
-                rejection_reason="Incompatible trip direction",
-            )
+    # Detour = insert the off-route point(s) into the trip.
+    detour = 0.0
+    if pickup_off > 0.15:
+        detour += detour_km(request.origin, request.destination, candidate.pickup) * 0.6 + pickup_off * 0.4
+    if drop_off > 0.15:
+        detour += detour_km(request.origin, request.destination, candidate.drop) * 0.6 + drop_off * 0.4
 
-        # Calculate Score Factors (all normalized 0.0 - 1.0)
-        route_overlap = RouteCompatibilityEvaluator.calculate_route_overlap(
-            (req_a.pickup_latitude, req_a.pickup_longitude),
-            (req_a.destination_latitude, req_a.destination_longitude),
-            (req_b.pickup_latitude, req_b.pickup_longitude),
-            (req_b.destination_latitude, req_b.destination_longitude),
-        )
+    max_detour = min(cfg.max_detour_km, max(0.8, route_km * cfg.max_detour_ratio))
+    if pickup_off > cfg.max_offset_km + 1.0 or drop_off > cfg.max_offset_km + 1.0 or detour > max_detour:
+        return MatchResult(False, 0.0, detour, pickup_off, drop_off, time_delta, "too_far_from_route")
 
-        pickup_efficiency = max(0.0, 1.0 - (pickup_dist / self.max_pickup_dist))
-        dest_similarity = max(0.0, 1.0 - (dest_dist / self.max_dest_dist))
-
-        # Waiting fairness boosts requests that have been waiting longer
-        waiting_fairness = min(1.0, max(req_a.waiting_time_minutes, req_b.waiting_time_minutes) / 5.0)
-
-        # Vehicle utilization score (higher when closer to max capacity)
-        total_seats = req_a.requested_seats + req_b.requested_seats
-        vehicle_utilization = total_seats / self.max_capacity
-
-        # Delay penalty based on detour distance
-        delay_penalty = pickup_dist / self.max_pickup_dist
-
-        # Overall Weighted Score Formula from Part 13
-        score = (
-            (route_overlap * self.w1)
-            + (pickup_efficiency * self.w2)
-            + (dest_similarity * self.w3)
-            + (waiting_fairness * self.w4)
-            + (vehicle_utilization * self.w5)
-            - (delay_penalty * self.w6)
-        )
-
-        normalized_score = round(max(0.0, min(1.0, score)), 4)
-
-        return MatchCandidateResult(
-            request_a_id=req_a.id,
-            request_b_id=req_b.id,
-            score=normalized_score,
-            route_overlap=route_overlap,
-            pickup_distance_km=round(pickup_dist, 2),
-            destination_distance_km=round(dest_dist, 2),
-            is_compatible=True,
-        )
-
-    def find_best_matches(
-        self,
-        target_request: CandidateRideRequest,
-        candidates: list[CandidateRideRequest],
-        min_score_threshold: float = 0.30,
-    ) -> list[MatchCandidateResult]:
-        """
-        Rank candidate ride requests for a target request.
-        Returns sorted list of valid matches in descending score order.
-        """
-        results: list[MatchCandidateResult] = []
-
-        for candidate in candidates:
-            if candidate.id == target_request.id:
-                continue
-            if candidate.passenger_id == target_request.passenger_id:
-                continue
-
-            res = self.evaluate_match(target_request, candidate)
-            if res.is_compatible and res.score >= min_score_threshold:
-                results.append(res)
-
-        # Sort by highest score
-        results.sort(key=lambda x: x.score, reverse=True)
-        return results
+    detour_score = 1.0 - min(1.0, detour / max_detour)
+    time_score = 1.0 - min(1.0, time_delta / cfg.time_window_min)
+    seats_score = min(1.0, request.seats_available / 3.0)
+    rating_score = max(0.0, min(1.0, (candidate.rating - 3.0) / 2.0))
+    score = (
+        cfg.w_detour * detour_score
+        + cfg.w_time * time_score
+        + cfg.w_seats * seats_score
+        + cfg.w_rating * rating_score
+    )
+    return MatchResult(True, round(score, 4), detour, pickup_off, drop_off, time_delta, None)
