@@ -151,23 +151,23 @@ export function Input({
   hint,
   style,
   right,
+  onFocus,
+  onBlur,
   ...rest
 }: { label?: string; error?: string | null; hint?: string | null; right?: React.ReactNode } & TextInputProps) {
-  const [focused, setFocused] = React.useState(false);
   return (
     <View style={{ gap: 6 }}>
       {label ? <SmallBold color={colors.textSecondary}>{label}</SmallBold> : null}
       <View
         style={[
           styles.inputWrap,
-          focused ? { borderColor: colors.primary, backgroundColor: '#FFFFFF', ...shadows.card } : null,
           error ? { borderColor: colors.danger } : null,
         ]}
       >
         <TextInput
           placeholderTextColor={colors.textMuted}
-          onFocus={() => setFocused(true)}
-          onBlur={() => setFocused(false)}
+          onFocus={onFocus}
+          onBlur={onBlur}
           style={[styles.input, Platform.OS === 'web' && ({ outlineStyle: 'none' } as any), style]}
           {...rest}
         />
