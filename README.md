@@ -155,42 +155,7 @@ npm run admin
   - **Email**: `admin@traveo.app`
   - **Password**: `Admin@123`
 
----
 
-## 🎬 3-Minute Hackathon Demo Script (How to Present)
-
-Follow this sequence to showcase the platform smoothly to judges:
-
-1. **Open Driver App** ([http://localhost:8082](http://localhost:8082)):
-   - Sign in as Ramesh (`9900000001` / OTP `123456`).
-   - Switch the toggle to **"GO ONLINE"**. The driver is now visible to the dispatch engine.
-2. **Open Passenger App** ([http://localhost:8081](http://localhost:8081)):
-   - Sign in as a student (`9822000001` / OTP `123456`).
-   - Click **"Post a ride"**, select **"Leaving Campus"**, and enter a destination (e.g. `Swargate` or `Pune Station`).
-   - Show judges the dynamic route polyline, per-seat price breakdown, and tap **"Publish ride"**.
-   - Tap **"Lock & Request Driver"**.
-3. **Show Instant Automated Dispatch**:
-   - Flip to the Driver App window — it instantly chimes with an audio alert and displays the incoming offer popup with pickup location, rider count, and guaranteed earnings.
-   - Click **"Accept"**.
-   - Flip back to the Passenger App — the screen instantly switches to the active trip state, displaying the driver's vehicle number, live arrival distance, and start OTP!
-4. **Show Admin Operations** ([http://localhost:5173](http://localhost:5173)):
-   - Show the live operations map displaying current active rides, student verifications, and fleet status.
-
----
-
-## 🧪 Testing Same-College Privacy & Isolation
-
-To demonstrate to judges that students from different colleges **never** see each other's rides:
-
-1. In a terminal, run:
-   ```bash
-   python -m http.server 8083 --directory apps/passenger-tester
-   ```
-2. Open [http://localhost:8083](http://localhost:8083).
-3. The tester opens two mock student screens side-by-side:
-   - **Student A** (VIT Pune) posts a ride to Swargate.
-   - **Student B** (COEP) searches the feed.
-   - **Result**: Student B's feed remains completely empty, verifying 100% same-college isolation and campus privacy.
 
 ---
 
